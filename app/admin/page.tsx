@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import pb from "../../lib/pocketbase"; // ggf. Pfad anpassen: "../lib/pocketbase" wenn admin direkt unter app liegt
+import pb from "../lib/pocketbase"; // ggf. Pfad anpassen: "../lib/pocketbase" wenn admin direkt unter app liegt
 
 type Tab = "eras" | "persons" | "events";
 import ErasList from "../components/Eraslist";

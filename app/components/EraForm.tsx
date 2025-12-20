@@ -1,63 +1,62 @@
 "use client";
+import React, { useEffect, useState } from "react";
 
-import React, { useState } from "react";
+type EraValues = {
+    name: string;
+    start: number;
+    end: number;
+    description: string;
+};
 
-export default function EraForm() {
-    const [name, setName] = useState("");
-    const [startYear, setStartYear] = useState<number | "">("");
-    const [endYear, setEndYear] = useState<number | "">("");
-    const [description, setDescription] = useState("");
+export default function EraForm({
+    eraId,
+    initialValues,
+}: {
+    eraId?: string;
+    initialValues?: Partial<EraValues>;
+}) {
+    const [name, setName] = useState(initialValues?.name ?? "");
+    const [startYear, setStartYear] = useState<number | "">(initialValues?.start ?? "");
+    const [endYear, setEndYear] = useState<number | "">(initialValues?.end ?? "");
+    const [description, setDescription] = useState(initialValues?.description ?? "");
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Falls initialValues später reinkommen (z.B. nach fetch), States nachziehen:
+    useEffect(() => {
+        if (!initialValues) return;
+        if (initialValues.name !== undefined) setName(initialValues.name);
+        if (initialValues.start !== undefined) setStartYear(initialValues.start);
+        if (initialValues.end !== undefined) setEndYear(initialValues.end);
+        if (initialValues.description !== undefined) setDescription(initialValues.description);
+    }, [initialValues]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
 
-        if (!name.trim()) {
-            setError("Bitte gib einen Namen für die Epoche an.");
-            return;
-        }
-
-        if (startYear === "" || !Number.isFinite(startYear)) {
-            setError("Bitte gib ein gültiges Start-Jahr an (z.B. -500, 800, 1945).");
-            return;
-        }
-
-        if (endYear === "" || !Number.isFinite(endYear)) {
-            setError("Bitte gib ein gültiges End-Jahr an (z.B. -500, 800, 1945).");
-            return;
-        }
-
-        if (endYear < startYear) {
-            setError("Das End-Jahr darf nicht kleiner als das Start-Jahr sein.");
-            return;
-        }
+        if (!name.trim()) return setError("Bitte gib einen Namen an.");
+        if (startYear === "" || !Number.isFinite(startYear)) return setError("Ungültiges Start-Jahr.");
+        if (endYear === "" || !Number.isFinite(endYear)) return setError("Ungültiges End-Jahr.");
+        if (endYear < startYear) return setError("Ende darf nicht vor Start liegen.");
 
         setIsSaving(true);
         try {
             const fd = new FormData();
             fd.append("name", name.trim());
-            fd.append("start", String(startYear)); // passt zu deiner route.ts (incoming.get("start"))
-            fd.append("end", String(endYear));     // passt zu deiner route.ts (incoming.get("end"))
+            fd.append("start", String(startYear));
+            fd.append("end", String(endYear));
             fd.append("description", description);
 
-            const res = await fetch("/api/eras", { method: "POST", body: fd });
+            const isEdit = Boolean(eraId);
+            const url = isEdit ? `/api/eras/${eraId}` : "/api/eras";
+            const method = isEdit ? "PATCH" : "POST";
 
-            if (!res.ok) {
-                const txt = await res.text();
-                console.error(txt);
-                throw new Error("Upload fehlgeschlagen");
-            }
+            const res = await fetch(url, { method, body: fd });
+            if (!res.ok) throw new Error(await res.text());
 
             const data = await res.json();
-            console.log("Era gespeichert:", data.eraId);
-
-            // optional: reset
-            setName("");
-            setStartYear("");
-            setEndYear("");
-            setDescription("");
+            console.log(isEdit ? "Era aktualisiert:" : "Era gespeichert:", data);
         } catch (err: any) {
             setError(err?.message ?? "Unbekannter Fehler");
         } finally {
@@ -218,7 +217,7 @@ export default function EraForm() {
                         disabled={isSaving}
                         className="inline-flex items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-white bg-primary-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        {isSaving ? "Speichern..." : "Hinzufügen"}
+                        {isSaving ? "Speichern..." : "Speichern"}
                     </button>
                 </form>
             </div>

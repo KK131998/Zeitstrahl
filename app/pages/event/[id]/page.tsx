@@ -1,6 +1,6 @@
 // app/event/[id]/page.tsx
-import { getEventWithSubevents } from "../../../lib/data"; // Pfad ggf. anpassen
-import pb from "../../../lib/pocketbase";
+import { getEventWithSubevents } from "../../lib/data"; // Pfad ggf. anpassen
+import pb from "../../lib/pocketbase";
 
 
 type EventPageProps = {

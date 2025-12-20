@@ -17,13 +17,38 @@ import {
     AccordionContent,
 } from "flowbite-react";
 
-import type { Era, Event, Person } from "../../lib/data";
+import type { Era, Event, Person } from "../lib/data";
 
 type TimelinePageProps = {
     eras: Era[];
     allEvents: Event[];
     allPersons: Person[];
 };
+
+function formatYear(year?: string | number) {
+    if (year === undefined || year === null || year === "" || year === 0 || year === "0") {
+        return "";
+    }
+
+    const num = typeof year === "string" ? Number(year) : year;
+    if (!Number.isFinite(num) || num === 0) return ""; // extra safety
+
+    const abs = Math.abs(num);
+
+    if (abs >= 1_000_000_000) {
+        return `${(abs / 1_000_000_000).toFixed(1)} Mrd. ${num < 0 ? "v. Chr." : "n. Chr."}`;
+    }
+    if (abs >= 1_000_000) {
+        return `${(abs / 1_000_000).toFixed(1)} Mio. ${num < 0 ? "v. Chr." : "n. Chr."}`;
+    }
+    return num < 0
+        ? `${abs.toLocaleString("de-DE")} v. Chr.`
+        : `${abs.toLocaleString("de-DE")} n. Chr.`;
+}
+
+
+
+
 
 
 export default function TimelinePage({ eras, allEvents, allPersons }: TimelinePageProps) {
@@ -64,15 +89,24 @@ export default function TimelinePage({ eras, allEvents, allPersons }: TimelinePa
                                 <TimelinePoint />
                                 <TimelineContent>
                                     <TimelineTime>
-                                        {era.start_year}
-                                        {era.end_year &&
-                                            " – " + era.end_year}
+                                        {formatYear(era.start_year)}
+                                        {era.end_year && " – " + formatYear(era.end_year)}
                                     </TimelineTime>
 
                                     <TimelineBody>
                                         <Accordion collapseAll>
                                             <AccordionPanel>
-                                                <AccordionTitle>{era.name}</AccordionTitle>
+                                                <AccordionTitle>
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="font-semibold">{era.name}</span>
+                                                        {era.description ? (
+                                                            <span className="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                                                {era.description}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                </AccordionTitle>
+
                                                 <AccordionContent>
                                                     <div className="pl-4 border-l border-gray-200 dark:border-gray-700">
                                                         <Timeline>
@@ -86,16 +120,17 @@ export default function TimelinePage({ eras, allEvents, allPersons }: TimelinePa
                                                                         >
                                                                             <TimelineContent>
                                                                                 <TimelineTime>
-                                                                                    {event.start_year &&
-
-                                                                                        event.start_year
-                                                                                    }
-                                                                                    {event.end_year &&
-                                                                                        " – " +
-
-                                                                                        event.end_year
-                                                                                    }
+                                                                                    {(() => {
+                                                                                        const end = formatYear(event.end_year);
+                                                                                        return (
+                                                                                            <>
+                                                                                                {formatYear(event.start_year)}
+                                                                                                {end ? ` + ${end}` : ""}
+                                                                                            </>
+                                                                                        );
+                                                                                    })()}
                                                                                 </TimelineTime>
+
 
                                                                                 <TimelineTitle className="text-blue-600 hover:underline">
                                                                                     {event.title}
@@ -119,14 +154,10 @@ export default function TimelinePage({ eras, allEvents, allPersons }: TimelinePa
                                                                         >
                                                                             <TimelineContent>
                                                                                 <TimelineTime>
-                                                                                    {person.born &&
-                                                                                        person.born
-                                                                                    }
-                                                                                    {person.died &&
-                                                                                        " – " +
-                                                                                        person.died
-                                                                                    }
+                                                                                    {formatYear(person.born)}
+                                                                                    {person.died && " – " + formatYear(person.died)}
                                                                                 </TimelineTime>
+
                                                                                 <TimelineTitle className="text-blue-600 hover:underline">
                                                                                     {person.name}
                                                                                 </TimelineTitle>

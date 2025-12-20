@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getPersons } from "../../lib/data";
+import { getPersons } from "../lib/data";
 
 export default function PersonList() {
     const [persons, setPersons] = useState<any[]>([]);

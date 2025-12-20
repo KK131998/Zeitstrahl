@@ -72,7 +72,7 @@ export default function PersonForm() {
         }
 
         const data = await res.json();
-        console.log("Event gespeichert:", data.eventId);
+        console.log("Person gespeichert:", data.personId);
     };
 
     return (
@@ -98,7 +98,7 @@ export default function PersonForm() {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                placeholder="Event"
+                                placeholder="Name"
                                 required
                             />
                         </div>
@@ -159,7 +159,7 @@ export default function PersonForm() {
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
                                 className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                placeholder="Deine Beschreibung hier"
+                                placeholder="Die Biographie der Persönlichkeit..."
                             />
                         </div>
 
@@ -253,7 +253,7 @@ export default function PersonForm() {
                                                         onChange={(e) =>
                                                             updateAchievement(s.id, "title", e.target.value)
                                                         }
-                                                        placeholder="Titel des Subevents"
+                                                        placeholder="Titel des Achievements"
                                                         className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                                     />
                                                 </div>
@@ -271,7 +271,7 @@ export default function PersonForm() {
                                                             updateAchievement(
                                                                 s.id,
                                                                 "year",
-                                                                e.target.value === "" ? 0 : Number(e.target.value)
+                                                                e.target.value === "" ? NaN : Number(e.target.value)
                                                             )
                                                         }
                                                         className="block w-full ps-3 pe-3 py-2.5 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base"

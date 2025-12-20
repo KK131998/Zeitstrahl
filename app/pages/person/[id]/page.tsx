@@ -1,6 +1,6 @@
 // app/person/[id]/page.tsx
-import { getPersonWithAchievements } from "../../../lib/data"; // Pfad ggf. anpassen
-import pb from "../../../lib/pocketbase";
+import { getPersonWithAchievements } from "../../lib/data"; // Pfad ggf. anpassen
+import pb from "../../lib/pocketbase";
 
 
 type PersonPageProps = {

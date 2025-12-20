@@ -1,5 +1,5 @@
 // app/page.tsx
-import { getEras, getEvents, getPersons } from "../lib/data";
+import { getEras, getEvents, getPersons } from "./lib/data";
 import TimelinePage from "./pages/TimelinePage"; // gleich erstellt
 
 
