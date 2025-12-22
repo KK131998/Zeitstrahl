@@ -1,5 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { Alert } from "flowbite-react";
+
+
 
 type EraValues = {
     name: string;
@@ -21,6 +24,8 @@ export default function EraForm({
     const [description, setDescription] = useState(initialValues?.description ?? "");
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+
 
     // Falls initialValues später reinkommen (z.B. nach fetch), States nachziehen:
     useEffect(() => {
@@ -34,6 +39,8 @@ export default function EraForm({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setSuccess(null);
+
 
         if (!name.trim()) return setError("Bitte gib einen Namen an.");
         if (startYear === "" || !Number.isFinite(startYear)) return setError("Ungültiges Start-Jahr.");
@@ -56,6 +63,8 @@ export default function EraForm({
             if (!res.ok) throw new Error(await res.text());
 
             const data = await res.json();
+            setSuccess(eraId ? "Änderungen wurden gespeichert." : "Eintrag wurde erstellt.");
+
             console.log(isEdit ? "Era aktualisiert:" : "Era gespeichert:", data);
         } catch (err: any) {
             setError(err?.message ?? "Unbekannter Fehler");
@@ -211,6 +220,11 @@ export default function EraForm({
                             />
                         </div>
                     </div>
+                    {success && (
+                    <Alert color="success" className="sm:col-span-2 mt-4">
+                        <span className="font-medium">Erfolg!</span> {success}
+                    </Alert>
+                    )}
 
                     <button
                         type="submit"

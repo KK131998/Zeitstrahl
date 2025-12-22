@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Alert } from "flowbite-react";
+
 
 type SubeventInput = {
   title: string;
@@ -32,6 +34,8 @@ export default function EventForm({
   const [endYear, setEndYear] = useState<number | "">(initialValues?.end_year ?? "");
   const [summary, setSummary] = useState(initialValues?.summary ?? "");
   const [bild, setBild] = useState<File | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  
 
   // Subevents (UI mit id)
   const [subevents, setSubevents] = useState<SubeventUI[]>(
@@ -89,6 +93,7 @@ export default function EventForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     // Minimal-Validierung
     if (!title.trim()) return setError("Bitte gib einen Titel an.");
@@ -123,6 +128,8 @@ export default function EventForm({
       }
 
       const data = await res.json();
+      setSuccess(eventId ? "Änderungen wurden gespeichert." : "Eintrag wurde erstellt.");
+
       console.log(isEdit ? "Event aktualisiert:" : "Event gespeichert:", data);
     } catch (err: any) {
       setError(err?.message ?? "Unbekannter Fehler");
@@ -332,7 +339,11 @@ export default function EventForm({
               )}
             </div>
           </div>
-
+          {success && (
+          <Alert color="success" className="sm:col-span-2 mt-4">
+              <span className="font-medium">Erfolg!</span> {success}
+          </Alert>
+          )}
           <button
             type="submit"
             disabled={isSaving}

@@ -1,6 +1,6 @@
 // app/person/[id]/page.tsx
-import { getPersonWithAchievements } from "../../lib/data"; // Pfad ggf. anpassen
-import pb from "../../lib/pocketbase";
+import { getPersonWithAchievements } from "@/lib/data"; // Pfad ggf. anpassen
+import pb from "@/lib/pocketbase";
 
 
 type PersonPageProps = {
@@ -59,7 +59,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
                         {achievements.map((achievement) => (
                             <article className="p-6 bg-white rounded-lg border border-gray-200 shadow-md dark:bg-gray-800 dark:border-gray-700">
                                 <div className="flex justify-between items-center mb-5 text-gray-500">
-                                    <span className="text-sm">{achievement.date}</span>
+                                    <span className="text-sm">{achievement.year}</span>
                                 </div>
                                 <h2 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                                     <a href="#">{achievement.title}</a>

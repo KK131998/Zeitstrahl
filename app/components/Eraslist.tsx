@@ -35,25 +35,32 @@ export default function ErasList() {
     }, []);
 
     function formatYear(year?: string | number) {
-    if (year === undefined || year === null || year === "" || year === 0 || year === "0") {
-        return "";
-    }
+  if (year === undefined || year === null || year === "" || year === 0 || year === "0") {
+    return "";
+  }
 
-    const num = typeof year === "string" ? Number(year) : year;
-    if (!Number.isFinite(num) || num === 0) return ""; // extra safety
+  const num = typeof year === "string" ? Number(year) : year;
+  if (!Number.isFinite(num) || num === 0) return "";
 
-    const abs = Math.abs(num);
+  const abs = Math.abs(num);
 
-    if (abs >= 1_000_000_000) {
-        return `${(abs / 1_000_000_000).toFixed(1)} Mrd. ${num < 0 ? "v. Chr." : "n. Chr."}`;
-    }
-    if (abs >= 1_000_000) {
-        return `${(abs / 1_000_000).toFixed(1)} Mio. ${num < 0 ? "v. Chr." : "n. Chr."}`;
-    }
-    return num < 0
-        ? `${abs.toLocaleString("de-DE")} v. Chr.`
-        : `${abs.toLocaleString("de-DE")} n. Chr.`;
+  if (abs >= 1_000_000_000) {
+    return `${(abs / 1_000_000_000).toFixed(1)} Mrd. ${num < 0 ? "v. Chr." : "n. Chr."}`;
+  }
+
+  if (abs >= 1_000_000) {
+    return `${(abs / 1_000_000).toFixed(1)} Mio. ${num < 0 ? "v. Chr." : "n. Chr."}`;
+  }
+
+  // 👉 Tausenderpunkte NUR ab 5-stellig
+  const yearString =
+    abs >= 10_000 ? abs.toLocaleString("de-DE") : abs.toString();
+
+  return num < 0
+    ? `${yearString} v. Chr.`
+    : `${yearString} n. Chr.`;
 }
+    
 
 
     if (loading) return <div className="text-gray-400">Lade Epochen…</div>;

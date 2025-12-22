@@ -1,6 +1,6 @@
 // app/event/[id]/page.tsx
-import { getEventWithSubevents } from "../../lib/data"; // Pfad ggf. anpassen
-import pb from "../../lib/pocketbase";
+import { getEventWithSubevents } from "@/lib/data"; // Pfad ggf. anpassen
+import pb from "@/lib/pocketbase";
 
 
 type EventPageProps = {
@@ -59,7 +59,7 @@ export default async function EventPage({ params }: EventPageProps) {
                         {subevents.map((subevent) => (
                             <article className="p-6 bg-white rounded-lg border border-gray-200 shadow-md dark:bg-gray-800 dark:border-gray-700">
                                 <div className="flex justify-between items-center mb-5 text-gray-500">
-                                    <span className="text-sm">{subevent.date}</span>
+                                    <span className="text-sm">{subevent.year}</span>
                                 </div>
                                 <h2 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                                     <a href="#">{subevent.title}</a>
