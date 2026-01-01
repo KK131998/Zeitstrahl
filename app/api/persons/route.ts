@@ -1,4 +1,5 @@
 import PocketBase from "pocketbase";
+import { NextResponse } from "next/server";
 
 type IncomingAchievement = {
   title: string;
@@ -10,10 +11,12 @@ export async function POST(req: Request) {
   const pb = new PocketBase(process.env.POCKETBASE_URL);
 
   try {
-    await pb.collection("_superusers").authWithPassword(
-      process.env.POCKETBASE_ADMIN_EMAIL!,
-      process.env.POCKETBASE_ADMIN_PASSWORD!
-    );
+    await pb
+      .collection("_superusers")
+      .authWithPassword(
+        process.env.POCKETBASE_ADMIN_EMAIL!,
+        process.env.POCKETBASE_ADMIN_PASSWORD!,
+      );
 
     const incoming = await req.formData();
 
@@ -27,7 +30,8 @@ export async function POST(req: Request) {
     const bornRaw = String(incoming.get("born") ?? "").trim();
 
     if (!name) return Response.json({ error: "name fehlt." }, { status: 400 });
-    if (!bornRaw) return Response.json({ error: "born fehlt." }, { status: 400 });
+    if (!bornRaw)
+      return Response.json({ error: "born fehlt." }, { status: 400 });
 
     const born = Number(bornRaw);
     if (!Number.isFinite(born)) {
@@ -41,7 +45,10 @@ export async function POST(req: Request) {
     } else {
       const died = Number(diedRaw);
       if (!Number.isFinite(died)) {
-        return Response.json({ error: "died ist keine Zahl." }, { status: 400 });
+        return Response.json(
+          { error: "died ist keine Zahl." },
+          { status: 400 },
+        );
       }
       incoming.set("died", String(died));
     }
@@ -57,7 +64,7 @@ export async function POST(req: Request) {
       if (e?.status === 404) {
         return Response.json(
           { error: `Keine Epoche gefunden, die born=${born} abdeckt.` },
-          { status: 400 }
+          { status: 400 },
         );
       }
       throw e;
@@ -73,11 +80,18 @@ export async function POST(req: Request) {
     const person = await pb.collection("persons").create(incoming);
 
     if (!person?.id) {
-      return Response.json({ error: "Person wurde nicht erstellt (keine id)." }, { status: 500 });
+      return Response.json(
+        { error: "Person wurde nicht erstellt (keine id)." },
+        { status: 500 },
+      );
     }
 
     // Achievements erstellen (optional)
-    if (achievementsRaw && achievementsRaw.trim() && achievementsRaw.trim() !== "[]") {
+    if (
+      achievementsRaw &&
+      achievementsRaw.trim() &&
+      achievementsRaw.trim() !== "[]"
+    ) {
       const achievements = JSON.parse(achievementsRaw) as IncomingAchievement[];
 
       await Promise.all(
@@ -87,7 +101,8 @@ export async function POST(req: Request) {
           const year = typeof a.year === "number" ? a.year : NaN;
 
           if (!title) throw new Error("Achievement title fehlt.");
-          if (!Number.isFinite(year) || year === 0) throw new Error("Achievement year fehlt/ungueltig.");
+          if (!Number.isFinite(year) || year === 0)
+            throw new Error("Achievement year fehlt/ungueltig.");
           if (!description) throw new Error("Achievement description fehlt.");
 
           return pb.collection("person_achievements").create({
@@ -96,13 +111,17 @@ export async function POST(req: Request) {
             year,
             description,
           });
-        })
+        }),
       );
     }
 
-    return Response.json({ personId: person.id, eraId }, { status: 201 });
+    return NextResponse.json(
+      { id: person.id, personId: person.id, eraId },
+      { status: 201 },
+    );
   } catch (err: any) {
-    const status = err?.status && Number.isFinite(err.status) ? err.status : 500;
+    const status =
+      err?.status && Number.isFinite(err.status) ? err.status : 500;
     const payload = err?.data
       ? { message: err?.message ?? "PocketBase error", data: err.data }
       : { message: err?.message ?? String(err) };
