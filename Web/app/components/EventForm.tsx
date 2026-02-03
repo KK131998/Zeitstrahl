@@ -5,7 +5,8 @@ import { Alert } from "flowbite-react";
 
 type SubeventInput = {
   title: string;
-  year: number; // Zahl (z.B. 44 oder -44)
+  start_year: number;
+  end_year: number; // Zahl (z.B. 44 oder -44)
   description: string;
 };
 
@@ -85,7 +86,7 @@ export default function EventForm({
 
     setSubevents((prev) => [
       ...prev,
-      { id, title: "", year: NaN, description: "" },
+      { id, title: "", start_year: NaN, end_year: NaN, description: "" },
     ]);
   };
 
@@ -150,8 +151,8 @@ export default function EventForm({
 
       if (!createdEventId) {
         console.error("Keine Event-ID im Response:", data);
-      } else {
-        fetch("/api/cards/generate", {
+      } else if (!isEdit) {
+        await fetch("/api/cards/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -162,10 +163,10 @@ export default function EventForm({
               start_year: typeof startYear === "number" ? startYear : undefined,
               end_year: typeof endYear === "number" ? endYear : undefined,
               summary: summary?.trim?.() ?? "",
-              subevents: subevents.map(({ id, ...rest }) => rest), // UI-id raus
+              subevents: subevents.map(({ id, ...rest }) => rest),
             },
           }),
-        }).catch(console.error);
+        });
       }
 
       console.log(isEdit ? "Event aktualisiert:" : "Event gespeichert:", data);
@@ -371,18 +372,43 @@ export default function EventForm({
                           />
                         </div>
 
-                        {/* Year */}
+                        {/* Startjahr */}
                         <div>
                           <label className="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
-                            Jahr
+                            Von:
                           </label>
                           <input
                             type="number"
-                            value={Number.isFinite(s.year) ? s.year : ""}
+                            value={
+                              Number.isFinite(s.start_year) ? s.start_year : ""
+                            }
                             onChange={(e) =>
                               updateSubevent(
                                 s.id,
-                                "year",
+                                "start_year",
+                                e.target.value === ""
+                                  ? NaN
+                                  : Number(e.target.value),
+                              )
+                            }
+                            className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+
+                        {/* Endjahr */}
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                            Bis:
+                          </label>
+                          <input
+                            type="number"
+                            value={
+                              Number.isFinite(s.end_year) ? s.end_year : ""
+                            }
+                            onChange={(e) =>
+                              updateSubevent(
+                                s.id,
+                                "end_year",
                                 e.target.value === ""
                                   ? NaN
                                   : Number(e.target.value),

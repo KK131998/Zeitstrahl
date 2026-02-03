@@ -4,13 +4,14 @@ import { updateEventWithSubevents } from "@/lib/data";
 
 type IncomingSubevent = {
   title: string;
-  year: number;
+  start_year: number;
+  end_year: number;
   description: string;
 };
 
 export async function PATCH(
   req: Request,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: eventId } = await context.params;
@@ -30,7 +31,10 @@ export async function PATCH(
     if (startRaw !== null && startRaw !== "") {
       const n = Number(startRaw);
       if (!Number.isFinite(n))
-        return NextResponse.json({ error: "start_year ungültig" }, { status: 400 });
+        return NextResponse.json(
+          { error: "start_year ungültig" },
+          { status: 400 },
+        );
       eventData.start_year = n;
     }
 
@@ -39,7 +43,10 @@ export async function PATCH(
       else {
         const n = Number(endRaw);
         if (!Number.isFinite(n))
-          return NextResponse.json({ error: "end_year ungültig" }, { status: 400 });
+          return NextResponse.json(
+            { error: "end_year ungültig" },
+            { status: 400 },
+          );
         eventData.end_year = n;
       }
     }
@@ -58,7 +65,7 @@ export async function PATCH(
       } catch {
         return NextResponse.json(
           { error: "subevents ist kein gültiges JSON Array" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -67,17 +74,22 @@ export async function PATCH(
     const subevents = incoming.map((s) => ({
       title: s.title,
       description: s.description,
-      date: s.year,
+      start_year: s.start_year,
+      end_year: s.end_year,
     }));
 
-    const result = await updateEventWithSubevents(eventId, eventData, subevents);
+    const result = await updateEventWithSubevents(
+      eventId,
+      eventData,
+      subevents,
+    );
 
     return NextResponse.json(result);
-} catch (err: any) {
-  console.error("PATCH /api/events/[id] error:", err);
-  return NextResponse.json(
-    { error: err?.message ?? "Event Update fehlgeschlagen", data: err?.data },
-    { status: 500 }
-  );
-}
+  } catch (err: any) {
+    console.error("PATCH /api/events/[id] error:", err);
+    return NextResponse.json(
+      { error: err?.message ?? "Event Update fehlgeschlagen", data: err?.data },
+      { status: 500 },
+    );
+  }
 }

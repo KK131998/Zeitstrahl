@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { Alert } from "flowbite-react";
+import { getEras, type Era } from "../lib/data"; // Beispiel
 
 type AchievementInput = {
   title: string;
-  year: number;
+  start_year: number;
+  end_year: number;
   description: string;
 };
 
@@ -13,6 +15,7 @@ type AchievementUI = AchievementInput & { id: string };
 
 export type PersonInitialValues = Partial<{
   name: string;
+  eraId: string;
   born: number;
   died: number;
   bio: string;
@@ -48,6 +51,10 @@ export default function PersonForm({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [eraId, setEraId] = useState<string>(initialValues?.eraId ?? "");
+  const [eras, setEras] = useState<Era[]>([]);
+  const [erasLoading, setErasLoading] = useState(false);
+
   // initialValues nachziehen (Edit-Page)
   useEffect(() => {
     if (!initialValues) return;
@@ -56,6 +63,7 @@ export default function PersonForm({
     if (initialValues.born !== undefined) setBorn(initialValues.born);
     if (initialValues.died !== undefined) setDied(initialValues.died);
     if (initialValues.bio !== undefined) setBio(initialValues.bio);
+    if (initialValues.eraId !== undefined) setEraId(initialValues.eraId);
 
     if (initialValues.achievements !== undefined) {
       setAchievements(
@@ -70,6 +78,27 @@ export default function PersonForm({
     }
   }, [initialValues]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setErasLoading(true);
+      try {
+        const list = await getEras();
+        if (!cancelled) setEras(list);
+      } catch (e) {
+        console.error(e);
+        // optional: setError("Eras konnten nicht geladen werden.")
+      } finally {
+        if (!cancelled) setErasLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const addAchievement = () => {
     const id =
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -78,7 +107,7 @@ export default function PersonForm({
 
     setAchievements((prev) => [
       ...prev,
-      { id, title: "", year: NaN, description: "" },
+      { id, title: "", start_year: NaN, end_year: NaN, description: "" },
     ]);
   };
 
@@ -121,6 +150,7 @@ export default function PersonForm({
       fd.append("bio", bio);
 
       if (bild) fd.append("bild", bild);
+      if (eraId) fd.append("era", eraId);
 
       // Achievements als JSON (ohne UI-id) — Feldname bleibt wie bei dir: person_achievements
       fd.append(
@@ -142,10 +172,7 @@ export default function PersonForm({
 
       const createdPersonId = personId ?? data.id; // je nach API
 
-      if (!createdPersonId) {
-        console.error("Keine Person-ID im Response:", data);
-        // optional: setError("Keine Person-ID erhalten, Cards nicht erstellt.");
-      } else {
+      if (!isEdit && createdPersonId) {
         await fetch("/api/cards/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -202,6 +229,39 @@ export default function PersonForm({
                 placeholder="Name"
                 required
               />
+            </div>
+
+            {/* Era */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="era"
+                className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Epoche:
+              </label>
+
+              <select
+                id="era"
+                value={eraId}
+                onChange={(e) => setEraId(e.target.value)}
+                className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">
+                  {erasLoading
+                    ? "Lade Epochen..."
+                    : "— keine Epoche auswählen —"}
+                </option>
+
+                {eras.map((era) => (
+                  <option key={era.id} value={era.id}>
+                    {era.name}
+                    {typeof era.start_year === "number" ||
+                    typeof era.end_year === "number"
+                      ? ` (${era.start_year ?? "?"}–${era.end_year ?? "?"})`
+                      : ""}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Dates */}
@@ -366,19 +426,45 @@ export default function PersonForm({
                           />
                         </div>
 
-                        {/* Year */}
+                        {/* StartYear */}
                         <div>
                           <label className="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
-                            Jahr
+                            Von:
                           </label>
                           <input
                             type="number"
-                            value={Number.isFinite(a.year) ? a.year : ""}
+                            value={
+                              Number.isFinite(a.start_year) ? a.start_year : ""
+                            }
                             placeholder="z.B. -44"
                             onChange={(e) =>
                               updateAchievement(
                                 a.id,
-                                "year",
+                                "start_year",
+                                e.target.value === ""
+                                  ? NaN
+                                  : Number(e.target.value),
+                              )
+                            }
+                            className="bg-neutral-secondary-medium border-default-medium text-heading rounded-base block w-full border py-2.5 ps-3 pe-3 text-sm"
+                          />
+                        </div>
+
+                        {/* EndYear */}
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                            Bis:
+                          </label>
+                          <input
+                            type="number"
+                            value={
+                              Number.isFinite(a.end_year) ? a.end_year : ""
+                            }
+                            placeholder="z.B. -44"
+                            onChange={(e) =>
+                              updateAchievement(
+                                a.id,
+                                "end_year",
                                 e.target.value === ""
                                   ? NaN
                                   : Number(e.target.value),

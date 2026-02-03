@@ -3,12 +3,15 @@ import { NextResponse } from "next/server";
 
 type IncomingAchievement = {
   title: string;
-  year?: number;
+  start_year?: number;
+  end_year?: number;
   description: string;
 };
 
 export async function POST(req: Request) {
   const pb = new PocketBase(process.env.POCKETBASE_URL);
+  // PB Auto-Cancellation auf dem Server AUS (verhindert gegenseitiges Abbrechen)
+  pb.autoCancellation(false);
 
   try {
     await pb
@@ -19,6 +22,7 @@ export async function POST(req: Request) {
       );
 
     const incoming = await req.formData();
+    console.log("INCOMING FORM DATA:", incoming);
 
     // achievements separat lesen
     const achVal = incoming.get("person_achievements");
@@ -53,21 +57,36 @@ export async function POST(req: Request) {
       incoming.set("died", String(died));
     }
 
-    // Era finden über born
+    // Era aus dem Formular (optional)
     let eraId: string | null = null;
-    try {
-      const era = await pb
-        .collection("eras")
-        .getFirstListItem(`start_year <= ${born} && end_year >= ${born}`);
-      eraId = era.id;
-    } catch (e: any) {
-      if (e?.status === 404) {
-        return Response.json(
-          { error: `Keine Epoche gefunden, die born=${born} abdeckt.` },
-          { status: 400 },
-        );
+    const incomingEraRaw = incoming.get("era");
+    const incomingEraId =
+      typeof incomingEraRaw === "string" && incomingEraRaw.trim()
+        ? incomingEraRaw
+        : null;
+
+    // Era finden über born
+    if (incomingEraId) {
+      // 1️⃣ User hat explizit eine Epoche gewählt
+      console.log("Using incoming era_id:", incomingEraId);
+      eraId = incomingEraId;
+    } else {
+      // 2️⃣ Keine Epoche angegeben → automatisch über born finden
+      try {
+        console.log("Keine Epoche angegeben, suche über born:", born);
+        const era = await pb
+          .collection("eras")
+          .getFirstListItem(`start_year <= ${born} && end_year >= ${born}`);
+        eraId = era.id;
+      } catch (e: any) {
+        if (e?.status === 404) {
+          return Response.json(
+            { error: `Keine Epoche gefunden, die born=${born} abdeckt.` },
+            { status: 400 },
+          );
+        }
+        throw e;
       }
-      throw e;
     }
 
     // Relation setzen
@@ -87,6 +106,8 @@ export async function POST(req: Request) {
     }
 
     // Achievements erstellen (optional)
+
+    // Achievements erstellen (optional)
     if (
       achievementsRaw &&
       achievementsRaw.trim() &&
@@ -94,25 +115,30 @@ export async function POST(req: Request) {
     ) {
       const achievements = JSON.parse(achievementsRaw) as IncomingAchievement[];
 
-      await Promise.all(
-        achievements.map((a) => {
-          const title = String(a.title ?? "").trim();
-          const description = String(a.description ?? "").trim();
-          const year = typeof a.year === "number" ? a.year : NaN;
+      for (let i = 0; i < achievements.length; i++) {
+        const a = achievements[i];
 
-          if (!title) throw new Error("Achievement title fehlt.");
-          if (!Number.isFinite(year) || year === 0)
-            throw new Error("Achievement year fehlt/ungueltig.");
-          if (!description) throw new Error("Achievement description fehlt.");
+        const title = String(a.title ?? "").trim();
+        const description = String(a.description ?? "").trim();
 
-          return pb.collection("person_achievements").create({
+        let start_year = a.start_year;
+        let end_year = a.end_year;
+
+        if (!description)
+          throw new Error(`Achievement[${i}] description fehlt.`);
+
+        await pb.collection("person_achievements").create(
+          {
             person_id: person.id,
             title,
-            year,
+            start_year,
+            end_year,
             description,
-          });
-        }),
-      );
+          },
+          // optional: requestKey explizit pro Achievement (falls du wieder parallelisieren willst)
+          { requestKey: `person-ach-${person.id}-${i}` } as any,
+        );
+      }
     }
 
     return NextResponse.json(

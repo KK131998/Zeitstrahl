@@ -40,7 +40,8 @@ export type Subevent = {
   event_id: string;
   title: string;
   description?: string;
-  year?: number;
+  start_year?: number;
+  end_year?: number;
 };
 
 export type PersonAchievement = {
@@ -48,7 +49,8 @@ export type PersonAchievement = {
   person_id: string;
   title: string;
   description?: string;
-  year?: number;
+  start_year?: number;
+  end_year?: number;
 };
 
 // -----------------------------------------------------
@@ -96,7 +98,8 @@ function mapSubevent(record: any): Subevent {
     event_id: record.event_id,
     title: record.title,
     description: record.description,
-    year: record.year,
+    start_year: record.start_year,
+    end_year: record.end_year,
   };
 }
 
@@ -106,7 +109,8 @@ function mapPersonAchievement(record: any): PersonAchievement {
     person_id: record.person_id,
     title: record.title,
     description: record.description,
-    year: record.year,
+    start_year: record.start_year,
+    end_year: record.end_year,
   };
 }
 
@@ -155,7 +159,7 @@ export async function getEventWithSubevents(
 
   const subeventRecords = await pb.collection("subevents").getFullList({
     filter: `event_id = "${eventId}"`,
-    sort: "year",
+    sort: "start_year",
   });
 
   return {
@@ -172,7 +176,9 @@ export async function updateEventWithSubevents(
       "title" | "summary" | "start_year" | "end_year" | "bild" | "era_id"
     >
   >,
-  subevents: Array<Pick<Subevent, "title" | "description" | "year">>,
+  subevents: Array<
+    Pick<Subevent, "title" | "description" | "start_year" | "end_year">
+  >,
 ): Promise<{ event: Event; subevents: Subevent[] }> {
   // 1) Event updaten
   const updatedEventRecord = await pb
@@ -182,7 +188,7 @@ export async function updateEventWithSubevents(
   // 2) bestehende Subevents laden (damit wir updaten/löschen können)
   const existing = await pb.collection("subevents").getFullList({
     filter: `event_id = "${eventId}"`,
-    sort: "year",
+    sort: "start_year",
   });
 
   // 3) upsert per Reihenfolge
@@ -194,12 +200,19 @@ export async function updateEventWithSubevents(
     // skip komplett leere Einträge
     if (!s.title?.trim()) continue;
 
-    const payload = {
+    const payload: any = {
       event_id: eventId,
       title: s.title.trim(),
       description: s.description ?? "",
-      year: s.year, // <-- in deiner DB heißt es date
     };
+
+    if (typeof s.start_year === "number" && Number.isFinite(s.start_year)) {
+      payload.start_year = s.start_year;
+    }
+
+    if (typeof s.end_year === "number" && Number.isFinite(s.end_year)) {
+      payload.end_year = s.end_year;
+    }
 
     const existingAtIndex = existing[i];
 
@@ -222,7 +235,7 @@ export async function updateEventWithSubevents(
   // 5) Final neu laden (sauber sortiert)
   const finalSubevents = await pb.collection("subevents").getFullList({
     filter: `event_id = "${eventId}"`,
-    sort: "year",
+    sort: "start_year",
   });
 
   return {
@@ -238,7 +251,7 @@ export async function getAllEventsWithSubevents() {
   for (const event of events) {
     const subeventRecords = await pb.collection("subevents").getFullList({
       filter: `event_id = "${event.id}"`,
-      sort: "year",
+      sort: "start_year",
     });
 
     result.push({
@@ -261,7 +274,7 @@ export async function getPersonWithAchievements(
     .collection("person_achievements")
     .getFullList({
       filter: `person_id = "${personId}"`,
-      sort: "year",
+      sort: "start_year",
     });
 
   return {
@@ -279,7 +292,7 @@ export async function updatePersonWithAchievements(
     >
   >,
   achievements: Array<
-    Pick<PersonAchievement, "title" | "description" | "year">
+    Pick<PersonAchievement, "title" | "description" | "start_year" | "end_year">
   >,
 ): Promise<{ person: Person; achievements: PersonAchievement[] }> {
   // 1) Person updaten
@@ -290,7 +303,7 @@ export async function updatePersonWithAchievements(
   // 2) bestehende Achievements laden
   const existing = await pb.collection("person_achievements").getFullList({
     filter: `person_id = "${personId}"`,
-    sort: "year",
+    sort: "start_year",
   });
 
   // 3) upsert per Reihenfolge
@@ -303,7 +316,8 @@ export async function updatePersonWithAchievements(
       person_id: personId,
       title: a.title.trim(),
       description: a.description ?? "",
-      year: a.year,
+      start_year: a.start_year,
+      end_year: a.end_year,
     };
 
     const existingAtIndex = existing[i];
@@ -327,7 +341,7 @@ export async function updatePersonWithAchievements(
     .collection("person_achievements")
     .getFullList({
       filter: `person_id = "${personId}"`,
-      sort: "year",
+      sort: "start_year",
     });
 
   return {
@@ -345,7 +359,7 @@ export async function getAllPersonsWithAchievements() {
       .collection("person_achievements")
       .getFullList({
         filter: `person_id = "${person.id}"`,
-        sort: "year",
+        sort: "start_year",
       });
 
     result.push({

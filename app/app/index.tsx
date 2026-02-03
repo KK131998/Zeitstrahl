@@ -22,7 +22,7 @@ type Question = {
 
 type CardStatus = "new" | "one" | "two" | "three" | "four" | "five" | "six";
 
-const POCKETBASE_URL = "http://192.168.178.37:8090"; // <-- HIER ändern
+const POCKETBASE_URL = "https://zeitstrahl-backend.fly.dev"; // <-- HIER ändern
 const COLLECTION = "cards";
 
 function randomFrom<T>(list: T[]): T | null {

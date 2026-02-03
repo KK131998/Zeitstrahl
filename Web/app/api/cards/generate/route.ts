@@ -79,17 +79,12 @@ VARIATION (Achievements):
 - Die 2 Karten pro Achievement müssen unterschiedliche Blickwinkel haben
   (z.B. Handlung/Entscheidung, Bedeutung/Wirkung, Herausforderung, Lernen/Folge).
 - Keine nahezu identischen Fragen innerhalb desselben Achievements.
-- Über verschiedene Achievements dürfen Fragetypen wiederholt werden.
 
 INHALTLICHE QUALITÄT:
 - Fragen kurz, konkret, verständlich.
 - Antworten präzise und nur aus dem Kontext ableitbar.
 - Keine erfundenen Fakten.
 - Sprache: Deutsch.
-
-KONZEPT (Reihenfolge):
-1) Karten 1–3: Person allgemein
-2) Danach: pro Achievement (in Reihenfolge) genau 2 Karten
 
 KONTEXT:
 TYPE: PERSON
@@ -130,22 +125,13 @@ Keine zusätzlichen Felder, kein Fließtext.
 
 WICHTIGE REGELN ZUR ANZAHL:
 - Erstelle GENAU ${totalCards} Karten.
-- Davon GENAU 3 Karten zum HAUPTEVENT (übergreifend, nicht auf einzelne Subevents fokussieren).
-- Für JEDES Subevent GENAU 2 Karten, die sich klar und ausschließlich auf dieses Subevent beziehen.
-
-VARIATION (Subevents):
-- Die 2 Karten pro Subevent müssen unterschiedliche Blickwinkel haben (z.B. Erlebnis/Wahrnehmung, Emotion/Reaktion, Entscheidung/Handlung, Bedeutung/Interpretation, Lernen/Folge).
-- Keine zwei nahezu identischen Fragen innerhalb desselben Subevents.
-- Über verschiedene Subevents dürfen Fragetypen wiederkommen, aber nicht stumpf wiederholen.
+- Davon GENAU 3 Karten zum HAUPTEVENT.
+- Für JEDES Subevent GENAU 2 Karten nur zu diesem Subevent.
 
 INHALTLICHE QUALITÄT:
 - Fragen kurz, konkret, verständlich.
-- Antworten präzise, faktisch aus dem Kontext ableitbar; wenn Kontext unklar ist, antworte vorsichtig ohne neue Fakten zu erfinden.
+- Antworten präzise, nur aus dem Kontext ableitbar; keine erfundenen Fakten.
 - Sprache: Deutsch.
-
-KONZEPT (Reihenfolge):
-1) Karten 1-3: Hauptevent
-2) Danach: pro Subevent (in der angegebenen Reihenfolge) genau 2 Karten
 
 KONTEXT:
 TYPE: EVENT
@@ -164,39 +150,42 @@ ${subevents
   )
   .join("\n")}
 `.trim();
-
-    // --- KI Karten generieren ---
-    let cards;
-    try {
-      cards = await generateCards(contextText);
-    } catch (e) {
-      console.error("generateCards failed:", e);
-      return NextResponse.json(
-        { error: "Lernkarten konnten nicht generiert werden" },
-        { status: 502 },
-      );
-    }
-
-    // --- Speichern ---
-    const dueAt = new Date().toISOString();
-    const ids: string[] = [];
-
-    for (const c of cards) {
-      const q = (c.question ?? "").trim();
-      const a = (c.answer ?? "").trim();
-      if (!q || !a) continue;
-
-      const created = await pb.collection("cards").create({
-        question: q,
-        answer: a,
-        status: "new",
-        due_at: dueAt,
-        ...link, // person_id ODER event_id
-      });
-
-      ids.push(created.id);
-    }
-
-    return NextResponse.json({ ok: true, created: ids.length, ids });
+  } else {
+    // <<< wichtig: falls type irgendwas anderes ist
+    return NextResponse.json({ error: "Unbekannter type" }, { status: 400 });
   }
+
+  // --- KI Karten generieren ---
+  let cards: Array<{ question: string; answer: string }>;
+  try {
+    cards = await generateCards(contextText);
+  } catch (e) {
+    console.error("generateCards failed:", e);
+    return NextResponse.json(
+      { error: "Lernkarten konnten nicht generiert werden" },
+      { status: 502 },
+    );
+  }
+
+  // --- Speichern ---
+  const dueAt = new Date().toISOString();
+  const ids: string[] = [];
+
+  for (const c of cards) {
+    const q = (c.question ?? "").trim();
+    const a = (c.answer ?? "").trim();
+    if (!q || !a) continue;
+
+    const created = await pb.collection("cards").create({
+      question: q,
+      answer: a,
+      status: "new",
+      due_at: dueAt,
+      ...link,
+    });
+
+    ids.push(created.id);
+  }
+
+  return NextResponse.json({ ok: true, created: ids.length, ids });
 }

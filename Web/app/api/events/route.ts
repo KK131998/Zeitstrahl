@@ -2,7 +2,8 @@ import PocketBase from "pocketbase";
 
 type IncomingSubevent = {
   title: string;
-  year?: number; // kommt aus deinem Frontend
+  start_year?: number;
+  end_year?: number;
   description: string;
 };
 
@@ -124,22 +125,31 @@ export async function POST(req: Request) {
           const title = String(s.title ?? "").trim();
           const description = String(s.description ?? "").trim();
 
-          // Frontend schickt year:number, wir speichern es als date oder year – je nach PB schema.
-          // Wenn dein PB Feld wirklich "date" heißt und es NUR Text ist, kannst du hier year->String speichern.
-          // Besser wäre: in PocketBase ein Number-Feld "year" verwenden.
-
           if (!title) throw new Error("Subevent title fehlt.");
-          if (!description) throw new Error("Subevent description fehlt.");
 
-          return pb.collection("subevents").create({
+          const payload: any = {
             event_id: event.id,
             title,
-            // ⚠️ Hier musst du entscheiden:
-            // - wenn dein PB Feld "year" heißt: year: Number(dateOrYear)
-            // - wenn es "date" heißt (Text/Date): date: dateOrYear
-            year: s.year,
             description,
-          });
+          };
+
+          // start_year optional, aber wenn vorhanden muss es Zahl sein
+          if (s.start_year !== undefined && s.start_year !== null) {
+            const n = Number(s.start_year);
+            if (!Number.isFinite(n))
+              throw new Error("Subevent start_year ungültig.");
+            payload.start_year = n;
+          }
+
+          // end_year optional
+          if (s.end_year !== undefined && s.end_year !== null) {
+            const n = Number(s.end_year);
+            if (!Number.isFinite(n))
+              throw new Error("Subevent end_year ungültig.");
+            payload.end_year = n;
+          }
+
+          return pb.collection("subevents").create(payload);
         }),
       );
     }
