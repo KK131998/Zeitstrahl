@@ -3,7 +3,7 @@ import { getPersonWithAchievements } from "@/lib/data"; // Pfad ggf. anpassen
 import pb from "@/lib/pocketbase";
 
 type PersonPageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function PersonPage({ params }: PersonPageProps) {
@@ -84,7 +84,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
                 className="rounded-lg border border-gray-200 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800"
               >
                 <div className="mb-5 flex items-center justify-between text-gray-500">
-                  <span className="text-sm">{achievement.year}</span>
+                  <span className="text-sm">{achievement.start_year}</span>
                 </div>
                 <h2 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                   <a href="#">{achievement.title}</a>

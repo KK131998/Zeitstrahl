@@ -3,7 +3,9 @@ import { getEventWithSubevents } from "@/lib/data"; // Pfad ggf. anpassen
 import pb from "@/lib/pocketbase";
 
 type EventPageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
+  // falls du searchParams verwendest:
+  // searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function EventPage({ params }: EventPageProps) {
