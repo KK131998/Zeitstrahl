@@ -56,6 +56,9 @@ function formatYear(year?: string | number) {
   return num < 0 ? `${yearString} v. Chr.` : `${yearString} n. Chr.`;
 }
 
+const truncate = (text: string, max = 158) =>
+  text.length > max ? text.slice(0, max) + "…" : text;
+
 export default function TimelinePage({
   eras,
   allEvents,
@@ -112,6 +115,7 @@ export default function TimelinePage({
                         <AccordionTitle>
                           <div className="flex flex-col text-left">
                             <span className="font-semibold">{era.name}</span>
+
                             {era.description ? (
                               <span className="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
                                 {era.description}
@@ -151,9 +155,9 @@ export default function TimelinePage({
                                           </TimelineTitle>
 
                                           <TimelineBody>
-                                            {event.summary ||
-                                              era.description ||
-                                              "Noch keine Beschreibung vorhanden."}
+                                            {event.summary
+                                              ? truncate(event.summary)
+                                              : "Noch keine Beschreibung vorhanden."}
                                           </TimelineBody>
                                         </TimelineContent>
                                       </Link>

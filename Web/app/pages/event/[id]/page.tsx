@@ -88,11 +88,12 @@ export default async function EventPage({ params }: EventPageProps) {
                 className="rounded-lg border border-gray-200 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800"
               >
                 <div className="mb-5 flex items-center justify-between text-gray-500">
-                  <span className="text-sm">{subevent.start_year}</span>
-                </div>
-
-                <div className="mb-5 flex items-center justify-between text-gray-500">
-                  <span className="text-sm">{subevent.end_year}</span>
+                  <span className="text-sm">
+                    {formatYear(subevent.start_year)}
+                    {formatYear(subevent.end_year) && (
+                      <> – {formatYear(subevent.end_year)}</>
+                    )}
+                  </span>
                 </div>
 
                 <h2 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
