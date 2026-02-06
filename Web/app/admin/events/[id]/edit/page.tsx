@@ -8,9 +8,11 @@ function toNumberOrUndefined(v: any): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-export default async function Page(
-  { params }: { params: Promise<{ id: string }> }
-) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
 
   const { event, subevents } = await getEventWithSubevents(id);
@@ -26,7 +28,8 @@ export default async function Page(
           summary: event.summary ?? "",
           subevents: subevents.map((s) => ({
             title: s.title ?? "",
-            year: Number(s.year ?? NaN),
+            start_year: Number(s.start_year ?? NaN),
+            end_year: Number(s.end_year ?? NaN),
             description: s.description ?? "",
           })),
         }}
