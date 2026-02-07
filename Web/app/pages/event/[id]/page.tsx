@@ -52,8 +52,8 @@ export default async function EventPage({ params }: EventPageProps) {
   }
 
   return (
-    <main className="min-h-screen items-center justify-center bg-white px-4 py-16 dark:bg-gray-900">
-      <section className="bg-white dark:bg-gray-900">
+    <main className="min-h-screen items-center justify-center bg-blue-100 px-4 py-16 dark:bg-gray-900">
+      <section className="bg-blue-100 dark:bg-gray-900">
         <div className="mx-auto grid max-w-screen-xl px-4 py-8 lg:grid-cols-12 lg:gap-8 lg:py-16 xl:gap-0">
           <div className="mr-auto place-self-center lg:col-span-7">
             <h1 className="mb-4 max-w-2xl text-4xl leading-none font-extrabold tracking-tight md:text-5xl xl:text-6xl dark:text-white">
@@ -75,13 +75,17 @@ export default async function EventPage({ params }: EventPageProps) {
               {event.summary}
             </p>
           </div>
-          <div className="hidden lg:col-span-5 lg:mt-0 lg:flex">
-            <img src={imageUrl} alt="mockup" />
+          <div className="mt-8 flex justify-center lg:col-span-5 lg:mt-0">
+            <img
+              src={imageUrl}
+              alt={event.title}
+              className="w-full max-w-md rounded-lg"
+            />
           </div>
         </div>
       </section>
 
-      <section className="bg-white dark:bg-gray-900">
+      <section className="bg-blue-100 dark:bg-gray-900">
         <div className="mx-auto max-w-screen-xl px-4 py-8 lg:px-6 lg:py-16">
           <div className="grid gap-8 lg:grid-cols-2">
             {subevents.map((subevent) => (

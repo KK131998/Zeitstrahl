@@ -67,9 +67,9 @@ export default function TimelinePage({
   const [showPersons, setShowPersons] = useState(false);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white px-4 py-16 dark:bg-gray-900">
+    <main className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-16">
       <div className="w-full max-w-3xl">
-        <h1 className="mb-8 text-center text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="mb-8 text-center text-3xl font-bold text-white">
           Geschichtsblog – Zeitstrahl
         </h1>
 
@@ -82,9 +82,9 @@ export default function TimelinePage({
               type="checkbox"
               checked={showPersons}
               onChange={() => setShowPersons(!showPersons)}
-              className="peer sr-only"
+              className="peer sr-only bg-black"
             />
-            <div className="bg-neutral-quaternary peer-focus:ring-brand-soft dark:peer-focus:ring-brand-soft peer peer-checked:after:border-buffer peer-checked:bg-brand relative mx-3 h-5 w-9 rounded-full border border-white peer-focus:ring-4 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full" />
+            <div className="dark:bg-neutral-quaternary dark:peer-checked:bg-brand relative mx-3 h-5 w-9 rounded-full border border-black bg-black peer-checked:bg-black peer-focus:ring-4 peer-focus:ring-gray-400 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full dark:border-white" />{" "}
             <span className="text-sm font-medium text-white select-none">
               Personen
             </span>
@@ -104,7 +104,7 @@ export default function TimelinePage({
               <TimelineItem key={era.id}>
                 <TimelinePoint />
                 <TimelineContent>
-                  <TimelineTime>
+                  <TimelineTime className="text-white">
                     {formatYear(era.start_year)}
                     {era.end_year && " – " + formatYear(era.end_year)}
                   </TimelineTime>
@@ -112,12 +112,12 @@ export default function TimelinePage({
                   <TimelineBody>
                     <Accordion collapseAll>
                       <AccordionPanel>
-                        <AccordionTitle>
-                          <div className="flex flex-col text-left">
+                        <AccordionTitle className="!bg-transparent !text-white hover:!bg-transparent focus:!bg-transparent active:!bg-transparent dark:!bg-transparent dark:hover:!bg-transparent dark:focus:!bg-transparent dark:active:!bg-transparent">
+                          <div className="flex flex-col text-left text-white">
                             <span className="font-semibold">{era.name}</span>
 
                             {era.description ? (
-                              <span className="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
+                              <span className="mt-1 text-sm font-normal text-gray-400">
                                 {era.description}
                               </span>
                             ) : null}
@@ -125,7 +125,7 @@ export default function TimelinePage({
                         </AccordionTitle>
 
                         <AccordionContent>
-                          <div className="border-l border-gray-200 pl-4 dark:border-gray-700">
+                          <div className="border-l border-black border-gray-700 pl-4">
                             <Timeline>
                               {!showPersons
                                 ? eventsForEra.map((event) => (
@@ -150,7 +150,7 @@ export default function TimelinePage({
                                             })()}
                                           </TimelineTime>
 
-                                          <TimelineTitle className="text-blue-600 hover:underline">
+                                          <TimelineTitle className="text-white hover:underline">
                                             {event.title}
                                           </TimelineTitle>
 
