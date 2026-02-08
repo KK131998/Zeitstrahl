@@ -14,10 +14,7 @@ export async function POST(req: Request) {
     // 1) Admin Login
     await pb
       .collection("_superusers")
-      .authWithPassword(
-        process.env.POCKETBASE_ADMIN_EMAIL!,
-        process.env.POCKETBASE_ADMIN_PASSWORD!,
-      );
+      .authWithPassword("klaus.keisers@web.de", "CS49tenple!");
 
     // 2) FormData lesen
     const incoming = await req.formData();
