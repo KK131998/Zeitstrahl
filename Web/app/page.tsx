@@ -1,8 +1,9 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // app/page.tsx
 import { getEras, getEvents, getPersons } from "./lib/data";
 import TimelinePage from "./pages/TimelinePage"; // gleich erstellt
-
-
 
 export default async function Page() {
   const eras = await getEras();
@@ -10,10 +11,6 @@ export default async function Page() {
   const allPersons = await getPersons();
 
   return (
-    <TimelinePage
-      eras={eras}
-      allEvents={allEvents}
-      allPersons={allPersons}
-    />
+    <TimelinePage eras={eras} allEvents={allEvents} allPersons={allPersons} />
   );
 }
