@@ -1,7 +1,5 @@
 // app/TimelinePage.tsx
 "use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import {
   Timeline,
@@ -56,7 +54,7 @@ function formatYear(year?: string | number) {
   return num < 0 ? `${yearString} v. Chr.` : `${yearString} n. Chr.`;
 }
 
-const truncate = (text: string, max = 158) =>
+const truncate = (text: string, max = 130) =>
   text.length > max ? text.slice(0, max) + "…" : text;
 
 export default function TimelinePage({
@@ -64,32 +62,12 @@ export default function TimelinePage({
   allEvents,
   allPersons,
 }: TimelinePageProps) {
-  const [showPersons, setShowPersons] = useState(false);
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-900 px-4 py-16">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-5xl">
         <h1 className="mb-8 text-center text-3xl font-bold text-white">
           Geschichtsblog – Zeitstrahl
         </h1>
-
-        <div className="mt-6 mb-10 flex justify-center">
-          <label className="inline-flex cursor-pointer items-center">
-            <span className="text-sm font-medium text-white select-none">
-              Events
-            </span>
-            <input
-              type="checkbox"
-              checked={showPersons}
-              onChange={() => setShowPersons(!showPersons)}
-              className="peer sr-only bg-black"
-            />
-            <div className="dark:bg-neutral-quaternary dark:peer-checked:bg-brand relative mx-3 h-5 w-9 rounded-full border border-black bg-black peer-checked:bg-black peer-focus:ring-4 peer-focus:ring-gray-400 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full dark:border-white" />{" "}
-            <span className="text-sm font-medium text-white select-none">
-              Personen
-            </span>
-          </label>
-        </div>
 
         <Timeline>
           {eras.map((era) => {
@@ -99,6 +77,38 @@ export default function TimelinePage({
             const personsForEra = allPersons.filter(
               (person) => person.era_id === era.id,
             );
+
+            const itemsForEra = [
+              ...personsForEra.map((person) => ({
+                type: "person" as const,
+                id: person.id,
+                sortYear:
+                  (person.timeline_year as number | string | undefined) ??
+                  (person.born as number | string | undefined) ??
+                  (person.died as number | string | undefined) ??
+                  0,
+                data: person,
+              })),
+              ...eventsForEra.map((event) => ({
+                type: "event" as const,
+                id: event.id,
+                sortYear:
+                  (event.start_year as number | string | undefined) ??
+                  (event.end_year as number | string | undefined) ??
+                  0,
+                data: event,
+              })),
+            ].sort((a, b) => {
+              const aNum =
+                typeof a.sortYear === "string"
+                  ? Number(a.sortYear)
+                  : (a.sortYear as number);
+              const bNum =
+                typeof b.sortYear === "string"
+                  ? Number(b.sortYear)
+                  : (b.sortYear as number);
+              return aNum - bNum;
+            });
 
             return (
               <TimelineItem key={era.id}>
@@ -125,72 +135,103 @@ export default function TimelinePage({
                         </AccordionTitle>
 
                         <AccordionContent>
-                          <div className="border-l border-black border-gray-700 pl-4">
-                            <Timeline>
-                              {!showPersons
-                                ? eventsForEra.map((event) => (
-                                    <TimelineItem key={event.id}>
-                                      <TimelinePoint />
-                                      <Link
-                                        href={`pages//event/${event.id}`}
-                                        className="block cursor-pointer"
+                          <div className="mt-4">
+                            {itemsForEra.length === 0 ? (
+                              <p className="text-sm text-gray-500">
+                                Keine Personen oder Events für diese Epoche.
+                              </p>
+                            ) : (
+                              <div className="space-y-8">
+                                {itemsForEra.map((item) => {
+                                  const isPerson = item.type === "person";
+
+                                  return (
+                                    <div
+                                      key={`${item.type}-${item.id}`}
+                                      className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-stretch"
+                                    >
+                                      {/* Linke Seite: Personen */}
+                                      <div
+                                        className={
+                                          isPerson ? "md:text-right" : ""
+                                        }
                                       >
-                                        <TimelineContent>
-                                          <TimelineTime>
-                                            {(() => {
-                                              const end = formatYear(
-                                                event.end_year,
-                                              );
-                                              return (
-                                                <>
-                                                  {formatYear(event.start_year)}
-                                                  {end ? ` - ${end}` : ""}
-                                                </>
-                                              );
-                                            })()}
-                                          </TimelineTime>
+                                        {isPerson && (
+                                          <Link
+                                            href={`pages/person/${item.data.id}`}
+                                            className="block cursor-pointer"
+                                          >
+                                            <div className="inline-block rounded-lg border border-gray-700 bg-gray-900/60 p-3 text-left md:text-right">
+                                              <div className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                                Person
+                                              </div>
+                                              <div className="text-xs text-gray-400">
+                                                {formatYear(item.data.born)}
+                                                {item.data.died &&
+                                                  " – " +
+                                                    formatYear(item.data.died)}
+                                              </div>
+                                              <div className="mt-1 text-sm font-semibold text-blue-400 hover:underline">
+                                                {item.data.name}
+                                              </div>
+                                              <div className="mt-1 text-sm text-gray-300">
+                                                {item.data.bio
+                                                  ? truncate(item.data.bio)
+                                                  : "Noch keine Beschreibung vorhanden."}
+                                              </div>
+                                            </div>
+                                          </Link>
+                                        )}
+                                      </div>
 
-                                          <TimelineTitle className="text-white hover:underline">
-                                            {event.title}
-                                          </TimelineTitle>
+                                      {/* Mitte: Punkt auf dem Zeitstrahl */}
+                                      <div className="flex h-full items-center justify-center">
+                                        <div className="h-3 w-3 rounded-full border-2 border-gray-900 bg-blue-500" />
+                                      </div>
 
-                                          <TimelineBody>
-                                            {event.summary
-                                              ? truncate(event.summary)
-                                              : "Noch keine Beschreibung vorhanden."}
-                                          </TimelineBody>
-                                        </TimelineContent>
-                                      </Link>
-                                    </TimelineItem>
-                                  ))
-                                : personsForEra.map((person) => (
-                                    <TimelineItem key={person.id}>
-                                      <TimelinePoint />
-                                      <Link
-                                        href={`pages/person/${person.id}`} // korrigierte Route
-                                        className="block cursor-pointer"
-                                      >
-                                        <TimelineContent>
-                                          <TimelineTime>
-                                            {formatYear(person.born)}
-                                            {person.died &&
-                                              " – " + formatYear(person.died)}
-                                          </TimelineTime>
-
-                                          <TimelineTitle className="text-blue-600 hover:underline">
-                                            {person.name}
-                                          </TimelineTitle>
-
-                                          <TimelineBody>
-                                            {person.bio ||
-                                              person.description ||
-                                              "Noch keine Beschreibung vorhanden."}
-                                          </TimelineBody>
-                                        </TimelineContent>
-                                      </Link>
-                                    </TimelineItem>
-                                  ))}
-                            </Timeline>
+                                      {/* Rechte Seite: Events */}
+                                      <div>
+                                        {!isPerson && (
+                                          <Link
+                                            href={`pages//event/${item.data.id}`}
+                                            className="block cursor-pointer"
+                                          >
+                                            <div className="inline-block rounded-lg border border-gray-700 bg-gray-900/60 p-3 text-left">
+                                              <div className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                                Event
+                                              </div>
+                                              <div className="text-xs text-gray-400">
+                                                {(() => {
+                                                  const end = formatYear(
+                                                    item.data.end_year,
+                                                  );
+                                                  return (
+                                                    <>
+                                                      {formatYear(
+                                                        item.data.start_year,
+                                                      )}
+                                                      {end ? ` - ${end}` : ""}
+                                                    </>
+                                                  );
+                                                })()}
+                                              </div>
+                                              <div className="mt-1 text-sm font-semibold text-white hover:underline">
+                                                {item.data.title}
+                                              </div>
+                                              <div className="mt-1 text-sm text-gray-300">
+                                                {item.data.summary
+                                                  ? truncate(item.data.summary)
+                                                  : "Noch keine Beschreibung vorhanden."}
+                                              </div>
+                                            </div>
+                                          </Link>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         </AccordionContent>
                       </AccordionPanel>

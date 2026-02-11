@@ -18,6 +18,7 @@ export type PersonInitialValues = Partial<{
   eraId: string;
   born: number;
   died: number;
+  timeline_year: number;
   bio: string;
   achievements: AchievementInput[];
 }>;
@@ -33,6 +34,7 @@ export default function PersonForm({
   const [name, setName] = useState(initialValues?.name ?? "");
   const [born, setBorn] = useState<number | "">(initialValues?.born ?? "");
   const [died, setDied] = useState<number | "">(initialValues?.died ?? "");
+  const [timeline_year, setTimeline_year] = useState<number | "">(initialValues?.timeline_year ?? "");
   const [bio, setBio] = useState(initialValues?.bio ?? "");
   const [bild, setBild] = useState<File | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -62,6 +64,8 @@ export default function PersonForm({
     if (initialValues.name !== undefined) setName(initialValues.name);
     if (initialValues.born !== undefined) setBorn(initialValues.born);
     if (initialValues.died !== undefined) setDied(initialValues.died);
+    if (initialValues.timeline_year !== undefined)
+      setTimeline_year(initialValues.timeline_year);
     if (initialValues.bio !== undefined) setBio(initialValues.bio);
     if (initialValues.eraId !== undefined) setEraId(initialValues.eraId);
 
@@ -136,6 +140,8 @@ export default function PersonForm({
       return setError("Ungültiges Geburtsjahr.");
     if (died !== "" && !Number.isFinite(died))
       return setError("Ungültiges Sterbejahr.");
+    if (timeline_year !== "" && !Number.isFinite(timeline_year))
+      return setError("Ungültiges Jahr für den Zeitstrahl.");
     if (typeof born === "number" && typeof died === "number" && died < born)
       return setError("Gestorben darf nicht vor Geboren liegen.");
 
@@ -146,6 +152,8 @@ export default function PersonForm({
 
       if (born !== "") fd.append("born", String(born));
       if (died !== "") fd.append("died", String(died));
+      if (timeline_year !== "")
+        fd.append("timeline_year", String(timeline_year));
 
       fd.append("bio", bio);
 
@@ -183,6 +191,7 @@ export default function PersonForm({
               name: name.trim(),
               born: born === "" ? undefined : born,
               died: died === "" ? undefined : died,
+              timeline_year: timeline_year === "" ? undefined : timeline_year,
               bio: bio.trim(),
               achievements: achievements.map(({ id, ...rest }) => rest),
             },
@@ -305,6 +314,33 @@ export default function PersonForm({
                   className="bg-neutral-secondary-medium border-default-medium text-heading rounded-base block w-full border py-2.5 ps-3 pe-3 text-sm"
                 />
               </div>
+            </div>
+
+            {/* Timeline-Year */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="timeline_year"
+                className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Jahr für den Zeitstrahl (optional):
+              </label>
+              <input
+                id="timeline_year"
+                type="number"
+                placeholder="z.B. 1800 (wenn verschieden von Geburtsjahr)"
+                value={timeline_year}
+                onChange={(e) =>
+                  setTimeline_year(
+                    e.target.value === "" ? "" : Number(e.target.value),
+                  )
+                }
+                className="bg-neutral-secondary-medium border-default-medium text-heading rounded-base block w-full border py-2.5 ps-3 pe-3 text-sm"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Wird nur verwendet, um die Position der Person auf dem
+                Zeitstrahl zu bestimmen. Wenn leer, wird das Geburts- bzw.
+                Sterbejahr verwendet.
+              </p>
             </div>
 
             {/* Error */}

@@ -32,6 +32,7 @@ export type Person = {
   description?: string;
   born?: number;
   died?: number;
+  timeline_year?: number;
   bild?: string;
 };
 
@@ -88,6 +89,7 @@ function mapPerson(record: any): Person {
     description: record.description,
     born: record.born,
     died: record.died,
+    timeline_year: record.timeline_year,
     bild: record.bild,
   };
 }
@@ -288,7 +290,14 @@ export async function updatePersonWithAchievements(
   personData: Partial<
     Pick<
       Person,
-      "name" | "bio" | "description" | "born" | "died" | "bild" | "era_id"
+      | "name"
+      | "bio"
+      | "description"
+      | "born"
+      | "died"
+      | "timeline_year"
+      | "bild"
+      | "era_id"
     >
   >,
   achievements: Array<
