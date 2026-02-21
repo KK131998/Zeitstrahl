@@ -9,31 +9,52 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 
 type Question = {
   id: string;
   question: string;
-  answer: string; // Textantwort (empfohlen)
-  status?: CardStatus; // optional
-  due_at?: string | null; // optional
+  answer: string;
+  status?: CardStatus;
+  due_at?: string | null;
+  event_id?: string | null;
+  event_title?: string | null; // aus expand.event_id.title
 };
 
 type CardStatus = "new" | "one" | "two" | "three" | "four" | "five" | "six";
 
 const POCKETBASE_URL = "https://zeitstrahl-backend.fly.dev"; // <-- HIER ändern
 const COLLECTION = "cards";
+const TOAST_DURATION_MS = 1400;
 
 function randomFrom<T>(list: T[]): T | null {
   if (!list.length) return null;
   return list[Math.floor(Math.random() * list.length)];
 }
 
-function addDays(date: Date, days: number) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+/** Liefert das Datum ohne Uhrzeit (YYYY-MM-DD) für den lokalen Tag */
+function toDateOnly(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Fügt Tage hinzu und setzt die Uhrzeit auf Mitternacht (00:00:00) */
+function addDaysAtMidnight(date: Date, days: number): Date {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate() + days,
+    0,
+    0,
+    0,
+    0
+  );
 }
 
 function nextStatusAfterCorrect(current?: CardStatus): CardStatus {
@@ -54,7 +75,7 @@ const STATUS_ORDER: CardStatus[] = [
 ];
 
 const DAYS_BY_STATUS: Record<CardStatus, number> = {
-  new: 1, // morgen (für "heute": 0)
+  new: 0, // heute – bleibt im Deck, wird neu gemischt
   one: 3,
   two: 7,
   three: 14,
@@ -66,10 +87,25 @@ const DAYS_BY_STATUS: Record<CardStatus, number> = {
 async function deleteCard(id: string) {
   const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records/${id}`;
   const res = await fetch(url, { method: "DELETE" });
-
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     throw new Error(`Löschen fehlgeschlagen (${res.status}): ${txt}`);
+  }
+}
+
+async function patchCard(
+  id: string,
+  data: Partial<Pick<Question, "status" | "due_at" | "question" | "answer">>
+) {
+  const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records/${id}`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Speichern fehlgeschlagen (${res.status}): ${txt}`);
   }
 }
 
@@ -127,74 +163,52 @@ export default function Index() {
     ],
   };
 
-  async function loadQuestions() {
+  const loadQuestions = useCallback(async () => {
     const now = new Date();
     try {
       setLoading(true);
       setError(null);
-
-      const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records?perPage=200`;
+      const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records?perPage=200&expand=event_id`;
       const res = await fetch(url);
-
       if (!res.ok) {
         throw new Error(`PocketBase Fehler (${res.status}) – prüfe URL/Rules`);
       }
-
       const data = await res.json();
-      console.log("Daten von PocketBase:", data);
       const items = Array.isArray(data?.items) ? data.items : [];
-      // PocketBase -> unser Question Typ
-      const mapped: Question[] = items.map((it: any) => ({
-        id: String(it.id),
-        question: String(it.question ?? ""),
-        answer: String(it.answer ?? ""),
-        status: it.status ? String(it.status) : undefined,
-        due_at: it.due_at ?? null,
-      }));
-
-      const due = mapped.filter((q) => {
-        if (!q.due_at) return true; // kein Datum => sofort fällig
-        const dueDate = new Date(q.due_at);
-        if (Number.isNaN(dueDate.getTime())) return true; // kaputtes Datum => lieber anzeigen
-        return dueDate <= now;
+      const mapped: Question[] = items.map((it: Record<string, unknown>) => {
+        const expand = it.expand as Record<string, unknown> | undefined;
+        const eventRecord = expand?.event_id as { title?: string } | undefined;
+        const eventTitle = eventRecord?.title ? String(eventRecord.title) : null;
+        return {
+          id: String(it.id),
+          question: String(it.question ?? ""),
+          answer: String(it.answer ?? ""),
+          status: it.status ? String(it.status) : undefined,
+          due_at: (it.due_at as string | null) ?? null,
+          event_id: (it.event_id as string | null) ?? null,
+          event_title: eventTitle,
+        };
       });
-
-      console.log("NOW:", now.toISOString());
-      console.log("mapped:", mapped.length);
-      console.log("due:", due.length);
-
+      const today = toDateOnly(now);
+      const due = mapped.filter((q) => {
+        if (!q.due_at) return true;
+        const dueDate = new Date(q.due_at);
+        if (Number.isNaN(dueDate.getTime())) return true;
+        return toDateOnly(dueDate) <= today; // nur Datum vergleichen, Uhrzeit irrelevant
+      });
       setQuestions(due);
       setCurrent(randomFrom(due));
       resetFlip();
-    } catch (e: any) {
-      setError(e?.message ?? "Unbekannter Fehler beim Laden.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Unbekannter Fehler beim Laden.");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadQuestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function updateCard(
-    id: string,
-    data: Partial<Pick<Question, "status" | "due_at">>
-  ) {
-    const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records/${id}`;
-
-    const res = await fetch(url, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Update fehlgeschlagen (${res.status}): ${txt}`);
-    }
-  }
+  }, [loadQuestions]);
 
   async function handleDelete() {
     if (!current) return;
@@ -211,18 +225,14 @@ export default function Index() {
             try {
               setBusy("delete");
               await deleteCard(current.id);
-
               const remaining = questions.filter((q) => q.id !== current.id);
               setQuestions(remaining);
-
               const next = randomFrom(remaining);
               setCurrent(next);
               resetFlip();
-
               showToast("🗑️ Gelöscht");
-            } catch (e: any) {
-              console.log("handleDelete error:", e?.message ?? e);
-              setError(e?.message ?? "Fehler beim Löschen.");
+            } catch (e: unknown) {
+              setError(e instanceof Error ? e.message : "Fehler beim Löschen.");
             } finally {
               setBusy(null);
             }
@@ -239,30 +249,30 @@ export default function Index() {
 
     const now = new Date();
 
-    // falsch -> immer new, morgen fällig
+    // falsch -> status new, bleibt heute fällig, wird wieder ins Deck gemischt
+    // richtig -> nächster Status, Karte aus der Session
     const nextStatus: CardStatus = isCorrect
       ? nextStatusAfterCorrect(current.status)
       : "new";
 
     const days = DAYS_BY_STATUS[nextStatus];
-    const nextDue = addDays(now, days);
+    const nextDue = addDaysAtMidnight(now, days);
 
     try {
-      await updateCard(current.id, {
+      await patchCard(current.id, {
         status: nextStatus,
         due_at: nextDue.toISOString(),
       });
 
-      // aus der Session raus (weil nicht mehr "due")
-      const remaining = questions.filter((q) => q.id !== current.id);
-      setQuestions(remaining);
+      const remaining = isCorrect
+        ? questions.filter((q) => q.id !== current.id) // richtig: rausnehmen
+        : questions; // falsch: im Deck lassen, neu mischen
 
-      const next = randomFrom(remaining);
-      setCurrent(next);
+      setQuestions(remaining);
+      setCurrent(randomFrom(remaining));
       resetFlip();
-    } catch (e: any) {
-      console.log("handleAnswer error:", e?.message ?? e);
-      setError(e?.message ?? "Fehler beim Speichern.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Fehler beim Speichern.");
     }
   }
 
@@ -273,30 +283,12 @@ export default function Index() {
     setEditOpen(true);
   }
 
-  async function updateCardContent(
-    id: string,
-    data: Partial<Pick<Question, "question" | "answer">>
-  ) {
-    const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records/${id}`;
-
-    const res = await fetch(url, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`Bearbeiten fehlgeschlagen (${res.status}): ${txt}`);
-    }
-  }
-
   async function saveEdit() {
     if (!current) return;
 
     try {
       setBusy("save");
-      await updateCardContent(current.id, {
+      await patchCard(current.id, {
         question: editQ,
         answer: editA,
       });
@@ -309,9 +301,8 @@ export default function Index() {
 
       setEditOpen(false);
       showToast("✅ Gespeichert");
-    } catch (e: any) {
-      console.log("saveEdit error:", e?.message ?? e);
-      setError(e?.message ?? "Fehler beim Speichern.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Fehler beim Speichern.");
     } finally {
       setBusy(null);
     }
@@ -319,12 +310,43 @@ export default function Index() {
 
   function showToast(msg: string) {
     setToast(msg);
-    setTimeout(() => setToast(null), 1400);
+    setTimeout(() => setToast(null), TOAST_DURATION_MS);
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.header}>Lade Karten…</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable style={[styles.button, styles.retry]} onPress={loadQuestions}>
+          <Text style={styles.buttonText}>Erneut versuchen</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (remainingCards === 0) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.header}>🎉 Keine Karten mehr offen!</Text>
+        <Text style={styles.footer}>Alle fälligen Karten wurden bearbeitet.</Text>
+        <Pressable style={[styles.button, styles.retry]} onPress={loadQuestions}>
+          <Text style={styles.buttonText}>Aktualisieren</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
-      {/* FLIP CARD */}
       <Text style={styles.header}>
         {remainingCards} Karten noch zur Abfrage bereit
       </Text>
@@ -332,11 +354,21 @@ export default function Index() {
         <View style={styles.cardContainer}>
           {/* Vorderseite */}
           <Animated.View style={[styles.card, styles.front, frontStyle]}>
+            {(current?.event_title || current?.event_id) && (
+              <Text style={styles.eventId}>
+                Event: {current.event_title || current.event_id}
+              </Text>
+            )}
             <Text style={styles.question}>{current?.question || "—"}</Text>
           </Animated.View>
 
           {/* Rückseite */}
           <Animated.View style={[styles.card, styles.back, backStyle]}>
+            {(current?.event_title || current?.event_id) && (
+              <Text style={styles.eventId}>
+                Event: {current.event_title || current.event_id}
+              </Text>
+            )}
             <Text style={styles.answer}>{current?.answer || "—"}</Text>
           </Animated.View>
         </View>
@@ -374,13 +406,11 @@ export default function Index() {
           disabled={!current || busy !== null}
         >
           <Text style={styles.buttonText}>
-            <Text style={styles.buttonText}>
-              {busy === "delete"
-                ? "Lösche…"
-                : flipped
-                ? "✏️ Bearbeiten"
-                : "🗑️ Löschen"}
-            </Text>
+            {busy === "delete"
+              ? "Lösche…"
+              : flipped
+              ? "✏️ Bearbeiten"
+              : "🗑️ Löschen"}
           </Text>
         </Pressable>
       </View>
@@ -394,7 +424,14 @@ export default function Index() {
         animationType="fade"
         onRequestClose={() => setEditOpen(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Bearbeiten</Text>
 
@@ -423,7 +460,6 @@ export default function Index() {
                 <Text style={styles.buttonText}>Abbrechen</Text>
               </Pressable>
 
-              {/* Speichern bauen wir als nächstes */}
               <Pressable
                 style={[
                   styles.button,
@@ -442,7 +478,8 @@ export default function Index() {
               </Pressable>
             </View>
           </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
       {toast && (
         <View style={styles.toast}>
@@ -460,7 +497,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#1980afff",
   },
-
+  centered: {
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#fee2e2",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  retry: {
+    backgroundColor: "#6b7280",
+    paddingHorizontal: 24,
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 16,
+  },
   header: {
     textAlign: "center",
     fontSize: 14,
@@ -487,6 +542,14 @@ const styles = StyleSheet.create({
     backfaceVisibility: "hidden",
   },
 
+  eventId: {
+    position: "absolute",
+    top: 12,
+    left: 16,
+    right: 16,
+    fontSize: 12,
+    color: "#6b7280",
+  },
   front: {
     backgroundColor: "#fff",
   },
@@ -557,8 +620,6 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    padding: 16,
   },
   modalCard: {
     backgroundColor: "white",

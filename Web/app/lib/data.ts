@@ -121,7 +121,9 @@ function mapPersonAchievement(record: any): PersonAchievement {
 // -----------------------------------------------------
 
 export async function getEras(): Promise<Era[]> {
-  const records = await pb.collection("eras").getFullList();
+  const records = await pb.collection("eras").getFullList({
+    sort: "start_year", // älteste Epochen zuerst
+  });
   return records.map(mapEra);
 }
 
