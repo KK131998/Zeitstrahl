@@ -1,5 +1,8 @@
 // app/person/[id]/page.tsx
-import { getPersonWithAchievements } from "@/lib/data"; // Pfad ggf. anpassen
+import {
+  getPersonWithAchievements,
+  getEventsForPerson,
+} from "@/lib/data";
 import pb from "@/lib/pocketbase";
 
 type PersonPageProps = {
@@ -10,9 +13,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
   const { id } = await params;
 
   const { person, achievements } = await getPersonWithAchievements(id);
+  const { events } = await getEventsForPerson(id);
 
-  const imageUrl = `${pb.baseURL}/api/files/persons/${person.id}/${person.bild}`;
-  console.log("Image URL:", imageUrl);
+  const personImageUrl = `${pb.baseURL}/api/files/persons/${person.id}/${person.bild}`;
 
   if (!person) {
     return <div className="p-8">Person nicht gefunden.</div>;
@@ -70,7 +73,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
             </p>
           </div>
           <div className="hidden lg:col-span-5 lg:mt-0 lg:flex">
-            <img src={imageUrl} alt="mockup" />
+            <img src={personImageUrl} alt={person.name} />
           </div>
         </div>
       </section>
@@ -97,6 +100,61 @@ export default async function PersonPage({ params }: PersonPageProps) {
           </div>
         </div>
       </section>
+
+      {events.length > 0 && (
+        <section className="bg-blue-100 dark:bg-gray-900">
+          <div className="mx-auto max-w-screen-xl px-4 py-8 lg:px-6 lg:py-16">
+            <h2 className="mb-8 text-2xl font-bold tracking-tight text-gray-900 md:text-3xl dark:text-white">
+              Beteiligte Ereignisse
+            </h2>
+            <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+              {events.map((event) => {
+                const eventImageUrl = event.bild
+                  ? `${pb.baseURL}/api/files/events/${event.id}/${event.bild}`
+                  : null;
+                return (
+                  <article
+                    key={event.id}
+                    className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    {eventImageUrl && (
+                      <div className="aspect-[3/4] shrink-0 overflow-hidden bg-gray-200 dark:bg-gray-700">
+                        <img
+                          src={eventImageUrl}
+                          alt={event.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-1 flex-col p-6">
+                      <h3 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        {event.title}
+                      </h3>
+                      {(event.start_year || event.end_year) && (
+                        <p className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                          {formatYear(event.start_year)}
+                          {event.end_year && ` – ${formatYear(event.end_year)}`}
+                        </p>
+                      )}
+                      {event.summary && (
+                        <p className="line-clamp-4 flex-1 font-light text-gray-600 dark:text-gray-300">
+                          {event.summary.trim()}
+                        </p>
+                      )}
+                      <a
+                        href={`/pages/event/${event.id}`}
+                        className="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        Mehr erfahren →
+                      </a>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
