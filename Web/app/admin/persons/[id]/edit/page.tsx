@@ -1,6 +1,9 @@
 // app/admin/persons/[id]/edit/page.tsx
 import PersonForm from "@/components/PersonForm";
-import { getPersonWithAchievements } from "@/lib/data";
+import {
+  getPersonWithAchievements,
+  getEventsForPerson,
+} from "@/lib/data";
 
 function toNumberOrUndefined(v: any): number | undefined {
   if (v === null || v === undefined || v === "") return undefined;
@@ -16,6 +19,7 @@ export default async function Page({
   const { id } = await params;
 
   const { person, achievements } = await getPersonWithAchievements(id);
+  const { events } = await getEventsForPerson(id);
 
   return (
     <main className="min-h-screen bg-gray-900 px-4 py-16 text-white">
@@ -25,7 +29,10 @@ export default async function Page({
           name: person.name ?? "",
           born: toNumberOrUndefined(person.born),
           died: toNumberOrUndefined(person.died),
+          timeline_year: toNumberOrUndefined(person.timeline_year),
           bio: person.bio ?? "",
+          eraId: person.era_id ?? "",
+          eventIds: events.map((e) => e.id),
           achievements: achievements.map((a) => ({
             title: a.title ?? "",
             start_year: Number(a.start_year ?? NaN),

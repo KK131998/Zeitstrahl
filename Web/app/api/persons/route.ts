@@ -26,6 +26,14 @@ export async function POST(req: Request) {
     const achievementsRaw = typeof achVal === "string" ? achVal : null;
     incoming.delete("person_achievements");
 
+    // event_ids separat lesen
+    const eventIdsVal = incoming.get("event_ids");
+    const eventIdsRaw =
+      typeof eventIdsVal === "string" && eventIdsVal.trim()
+        ? eventIdsVal
+        : null;
+    incoming.delete("event_ids");
+
     // Pflichtfelder
     const name = String(incoming.get("name") ?? "").trim();
     const bornRaw = String(incoming.get("born") ?? "").trim();
@@ -135,6 +143,21 @@ export async function POST(req: Request) {
           // optional: requestKey explizit pro Achievement (falls du wieder parallelisieren willst)
           { requestKey: `person-ach-${person.id}-${i}` } as any,
         );
+      }
+    }
+
+    // event_persons erstellen (Verknüpfung Person ↔ Events)
+    if (eventIdsRaw && eventIdsRaw.trim() && eventIdsRaw.trim() !== "[]") {
+      try {
+        const eventIds = JSON.parse(eventIdsRaw) as string[];
+        if (Array.isArray(eventIds) && eventIds.length > 0) {
+          await pb.collection("event_persons").create({
+            event_ids: eventIds,
+            person_ids: [person.id],
+          });
+        }
+      } catch (e) {
+        console.error("event_persons creation failed:", e);
       }
     }
 

@@ -113,7 +113,30 @@ export async function POST(req: Request) {
       );
     }
 
-    // 6) Subevents erstellen (optional)
+    // 6) event_persons erstellen (Verknüpfung Event ↔ Personen)
+    const personIdsVal = incoming.get("person_ids");
+    const personIdsRaw =
+      typeof personIdsVal === "string" && personIdsVal.trim()
+        ? personIdsVal
+        : null;
+    incoming.delete("person_ids");
+
+    if (personIdsRaw && personIdsRaw.trim() && personIdsRaw.trim() !== "[]") {
+      try {
+        const personIds = JSON.parse(personIdsRaw) as string[];
+        if (Array.isArray(personIds) && personIds.length > 0) {
+          await pb.collection("event_persons").create({
+            event_ids: [event.id],
+            person_ids: personIds,
+          });
+        }
+      } catch (e) {
+        console.error("event_persons creation failed:", e);
+        // Nicht kritisch – Event wurde erstellt, Verknüpfung fehlgeschlagen
+      }
+    }
+
+    // 7) Subevents erstellen (optional)
     if (subeventsRaw && subeventsRaw.trim() && subeventsRaw.trim() !== "[]") {
       const subevents = JSON.parse(subeventsRaw) as IncomingSubevent[];
 

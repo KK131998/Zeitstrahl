@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert } from "flowbite-react";
-import { getEras, type Era } from "../lib/data"; // Beispiel
+import { getEras, getEvents, type Era, type Event } from "../lib/data";
 
 type AchievementInput = {
   title: string;
@@ -20,6 +20,7 @@ export type PersonInitialValues = Partial<{
   died: number;
   timeline_year: number;
   bio: string;
+  eventIds: string[];
   achievements: AchievementInput[];
 }>;
 
@@ -57,6 +58,12 @@ export default function PersonForm({
   const [eras, setEras] = useState<Era[]>([]);
   const [erasLoading, setErasLoading] = useState(false);
 
+  const [events, setEvents] = useState<Event[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>(
+    initialValues?.eventIds ?? [],
+  );
+
   // initialValues nachziehen (Edit-Page)
   useEffect(() => {
     if (!initialValues) return;
@@ -68,6 +75,8 @@ export default function PersonForm({
       setTimeline_year(initialValues.timeline_year);
     if (initialValues.bio !== undefined) setBio(initialValues.bio);
     if (initialValues.eraId !== undefined) setEraId(initialValues.eraId);
+    if (initialValues.eventIds !== undefined)
+      setSelectedEventIds(initialValues.eventIds);
 
     if (initialValues.achievements !== undefined) {
       setAchievements(
@@ -84,7 +93,6 @@ export default function PersonForm({
 
   useEffect(() => {
     let cancelled = false;
-
     (async () => {
       setErasLoading(true);
       try {
@@ -92,16 +100,64 @@ export default function PersonForm({
         if (!cancelled) setEras(list);
       } catch (e) {
         console.error(e);
-        // optional: setError("Eras konnten nicht geladen werden.")
       } finally {
         if (!cancelled) setErasLoading(false);
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setEventsLoading(true);
+      try {
+        const list = await getEvents();
+        if (!cancelled) setEvents(list);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!cancelled) setEventsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (initialValues?.eventIds !== undefined)
+      setSelectedEventIds(initialValues.eventIds);
+  }, [initialValues?.eventIds]);
+
+  // Events nach Lebenszeit filtern: nur anzeigen, die in die Person-Lebensspanne fallen
+  const filteredEvents = useMemo(() => {
+    const personStart =
+      born !== "" && Number.isFinite(born) ? Number(born) : null;
+    if (personStart === null) return events;
+
+    const personEnd =
+      died !== "" && Number.isFinite(died) ? Number(died) : 9999;
+
+    return events.filter((ev) => {
+      const eventStart = ev.start_year ?? null;
+      if (eventStart == null) return false;
+      const eventEnd = ev.end_year ?? eventStart;
+      const eventOverlaps =
+        eventStart <= personEnd && eventEnd >= personStart;
+      return eventOverlaps;
+    });
+  }, [events, born, died]);
+
+  const toggleEvent = (eventId: string) => {
+    setSelectedEventIds((prev) =>
+      prev.includes(eventId)
+        ? prev.filter((id) => id !== eventId)
+        : [...prev, eventId],
+    );
+  };
 
   const addAchievement = () => {
     const id =
@@ -165,6 +221,10 @@ export default function PersonForm({
         "person_achievements",
         JSON.stringify(achievements.map(({ id, ...rest }) => rest)),
       );
+
+      if (selectedEventIds.length > 0) {
+        fd.append("event_ids", JSON.stringify(selectedEventIds));
+      }
 
       const isEdit = Boolean(personId);
       const url = isEdit ? `/api/persons/${personId}` : "/api/persons";
@@ -401,6 +461,57 @@ export default function PersonForm({
                   Hinweis: Beim Bearbeiten kann man ein neues Bild hochladen
                   (überschreibt das alte).
                 </p>
+              )}
+            </div>
+
+            {/* Ereignisse (Verknüpfung) – gefiltert nach Lebenszeit */}
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                Beteiligte Ereignisse
+              </label>
+              {eventsLoading ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Ereignisse werden geladen…
+                </p>
+              ) : events.length === 0 ? (
+                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                  Keine Ereignisse vorhanden.
+                </p>
+              ) : born === "" || !Number.isFinite(born) ? (
+                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                  Bitte zuerst Geburtsjahr (und ggf. Sterbejahr) eingeben – dann werden nur passende Ereignisse angezeigt.
+                </p>
+              ) : filteredEvents.length === 0 ? (
+                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                  Keine Ereignisse fallen in die angegebene Lebensspanne.
+                </p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-300 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-700">
+                  <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                    Nur Ereignisse, die in die Lebensspanne der Person fallen
+                  </p>
+                  <div className="space-y-2">
+                    {filteredEvents.map((ev) => (
+                      <label
+                        key={ev.id}
+                        className="flex cursor-pointer items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedEventIds.includes(ev.id)}
+                          onChange={() => toggleEvent(ev.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-600"
+                        />
+                        <span className="text-gray-900 dark:text-white">
+                          {ev.title}
+                          {ev.start_year != null || ev.end_year != null
+                            ? ` (${ev.start_year ?? "?"} – ${ev.end_year ?? "?"})`
+                            : ""}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 

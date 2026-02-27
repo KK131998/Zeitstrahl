@@ -1,6 +1,6 @@
 // app/admin/events/[id]/edit/page.tsx
 import EventForm from "@/components/EventForm";
-import { getEventWithSubevents } from "@/lib/data";
+import { getEventWithSubevents, getPersonsForEvent } from "@/lib/data";
 
 function toNumberOrUndefined(v: any): number | undefined {
   if (v === null || v === undefined || v === "") return undefined;
@@ -16,6 +16,7 @@ export default async function Page({
   const { id } = await params;
 
   const { event, subevents } = await getEventWithSubevents(id);
+  const { persons } = await getPersonsForEvent(id);
 
   return (
     <main className="min-h-screen bg-gray-900 px-4 py-16 text-white">
@@ -26,6 +27,7 @@ export default async function Page({
           start_year: toNumberOrUndefined(event.start_year),
           end_year: toNumberOrUndefined(event.end_year),
           summary: event.summary ?? "",
+          personIds: persons.map((p) => p.id),
           subevents: subevents.map((s) => ({
             title: s.title ?? "",
             start_year: Number(s.start_year ?? NaN),

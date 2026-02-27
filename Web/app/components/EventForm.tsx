@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert } from "flowbite-react";
+import { getPersons, type Person } from "@/lib/data";
 
 type SubeventInput = {
   title: string;
@@ -17,7 +18,7 @@ export type EventInitialValues = Partial<{
   start_year: number;
   end_year: number;
   summary: string;
-  // Bild kann man beim Edit nicht sinnvoll "vorbefüllen" als File – optional später als URL anzeigen.
+  personIds: string[];
   subevents: SubeventInput[];
 }>;
 
@@ -51,8 +52,57 @@ export default function EventForm({
     })),
   );
 
+  const [persons, setPersons] = useState<Person[]>([]);
+  const [personsLoading, setPersonsLoading] = useState(false);
+  const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>(
+    initialValues?.personIds ?? [],
+  );
+
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setPersonsLoading(true);
+      try {
+        const list = await getPersons();
+        if (!cancelled) setPersons(list);
+      } catch (e) {
+        console.error("getPersons failed:", e);
+      } finally {
+        if (!cancelled) setPersonsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (initialValues?.personIds !== undefined)
+      setSelectedPersonIds(initialValues.personIds);
+  }, [initialValues?.personIds]);
+
+  // Personen nach Zeitraum filtern: nur anzeigen, die im Event-Zeitraum gelebt haben
+  const filteredPersons = useMemo(() => {
+    const eventStart =
+      startYear !== "" && Number.isFinite(startYear) ? Number(startYear) : null;
+    if (eventStart === null) return persons;
+
+    const eventEnd =
+      endYear !== "" && Number.isFinite(endYear) ? Number(endYear) : eventStart;
+
+    return persons.filter((p) => {
+      const born = p.born;
+      const died = p.died;
+      if (born == null) return false;
+      // Überlappung: Person war geboren vor/during Event-Ende UND starb nach Event-Start (oder starb unbekannt)
+      const bornBeforeEventEnd = born <= eventEnd;
+      const diedAfterEventStart = died == null || died >= eventStart;
+      return bornBeforeEventEnd && diedAfterEventStart;
+    });
+  }, [persons, startYear, endYear]);
 
   // Falls initialValues später reinkommen (Edit-Page lädt serverseitig – aber good practice)
   useEffect(() => {
@@ -104,6 +154,14 @@ export default function EventForm({
     );
   };
 
+  const togglePerson = (personId: string) => {
+    setSelectedPersonIds((prev) =>
+      prev.includes(personId)
+        ? prev.filter((id) => id !== personId)
+        : [...prev, personId],
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -131,6 +189,10 @@ export default function EventForm({
         "subevents",
         JSON.stringify(subevents.map(({ id, ...rest }) => rest)),
       );
+
+      if (selectedPersonIds.length > 0) {
+        fd.append("person_ids", JSON.stringify(selectedPersonIds));
+      }
 
       const isEdit = Boolean(eventId);
       const url = isEdit ? `/api/events/${eventId}` : "/api/events";
@@ -311,6 +373,57 @@ export default function EventForm({
                   Hinweis: Beim Bearbeiten kann man ein neues Bild hochladen
                   (überschreibt das alte).
                 </p>
+              )}
+            </div>
+
+            {/* Personen (Verknüpfung) – gefiltert nach Event-Zeitraum */}
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                Beteiligte Persönlichkeiten
+              </label>
+              {personsLoading ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Personen werden geladen…
+                </p>
+              ) : persons.length === 0 ? (
+                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                  Keine Personen vorhanden.
+                </p>
+              ) : (startYear === "" || !Number.isFinite(startYear)) ? (
+                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                  Bitte zuerst einen Zeitraum (Von/Bis) eingeben – dann werden nur passende Personen angezeigt.
+                </p>
+              ) : filteredPersons.length === 0 ? (
+                <p className="text-sm italic text-gray-500 dark:text-gray-400">
+                  Keine Personen haben im angegebenen Zeitraum gelebt.
+                </p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-300 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-700">
+                  <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                    Nur Personen, die im angegebenen Zeitraum gelebt haben
+                  </p>
+                  <div className="space-y-2">
+                    {filteredPersons.map((person) => (
+                      <label
+                        key={person.id}
+                        className="flex cursor-pointer items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedPersonIds.includes(person.id)}
+                          onChange={() => togglePerson(person.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-600"
+                        />
+                        <span className="text-gray-900 dark:text-white">
+                          {person.name}
+                          {person.born || person.died
+                            ? ` (${person.born ?? "?"} – ${person.died ?? "?"})`
+                            : ""}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
