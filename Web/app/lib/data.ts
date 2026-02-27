@@ -172,6 +172,38 @@ export async function getEventWithSubevents(
   };
 }
 
+export async function getPersonsForEvent(
+  eventId: string,
+): Promise<{ event: Event; persons: Person[] }> {
+  const eventRecord = await pb.collection("events").getOne(eventId, {
+    expand: "era_id",
+  });
+
+  const eventPersonRecords = await pb.collection("event_persons").getFullList();
+
+  const personIds = eventPersonRecords
+    .filter((r) => {
+      const eids = r.event_ids;
+      const arr = Array.isArray(eids) ? eids : eids ? [eids] : [];
+      return arr.includes(eventId);
+    })
+    .flatMap((r) => {
+      const ids = r.person_ids;
+      return Array.isArray(ids) ? ids : ids ? [ids] : [];
+    });
+
+  const persons = await Promise.all(
+    personIds.map((id) =>
+      pb.collection("persons").getOne(id).then(mapPerson),
+    ),
+  );
+
+  return {
+    event: mapEvent(eventRecord),
+    persons,
+  };
+}
+
 export async function updateEventWithSubevents(
   eventId: string,
   eventData: Partial<

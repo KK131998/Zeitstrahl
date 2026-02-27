@@ -1,5 +1,5 @@
 // app/event/[id]/page.tsx
-import { getEventWithSubevents } from "@/lib/data"; // Pfad ggf. anpassen
+import { getEventWithSubevents, getPersonsForEvent } from "@/lib/data"; // Pfad ggf. anpassen
 import pb from "@/lib/pocketbase";
 
 type EventPageProps = {
@@ -12,9 +12,9 @@ export default async function EventPage({ params }: EventPageProps) {
   const { id } = await params;
 
   const { event, subevents } = await getEventWithSubevents(id);
+  const { persons } = await getPersonsForEvent(id);
 
-  const imageUrl = `${pb.baseURL}/api/files/events/${event.id}/${event.bild}`;
-  console.log("Image URL:", imageUrl);
+  const eventImageUrl = `${pb.baseURL}/api/files/events/${event.id}/${event.bild}`;
 
   function formatYear(year?: string | number) {
     if (
@@ -77,7 +77,7 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
           <div className="mt-8 flex justify-center lg:col-span-5 lg:mt-0">
             <img
-              src={imageUrl}
+              src={eventImageUrl}
               alt={event.title}
               className="w-full max-w-md rounded-lg"
             />
@@ -114,6 +114,61 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
         </div>
       </section>
+
+      {persons.length > 0 && (
+        <section className="bg-blue-100 dark:bg-gray-900">
+          <div className="mx-auto max-w-screen-xl px-4 py-8 lg:px-6 lg:py-16">
+            <h2 className="mb-8 text-2xl font-bold tracking-tight text-gray-900 md:text-3xl dark:text-white">
+              Beteiligte Persönlichkeiten
+            </h2>
+            <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+              {persons.map((person) => {
+                const personImageUrl = person.bild
+                  ? `${pb.baseURL}/api/files/persons/${person.id}/${person.bild}`
+                  : null;
+                return (
+                  <article
+                    key={person.id}
+                    className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    {personImageUrl && (
+                      <div className="aspect-[3/4] shrink-0 overflow-hidden bg-gray-200 dark:bg-gray-700">
+                        <img
+                          src={personImageUrl}
+                          alt={person.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-1 flex-col p-6">
+                      <h3 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        {person.name}
+                      </h3>
+                      {(person.born || person.died) && (
+                        <p className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+                          {formatYear(person.born)}
+                          {person.died && ` – ${formatYear(person.died)}`}
+                        </p>
+                      )}
+                      {person.bio && (
+                        <p className="line-clamp-4 flex-1 font-light text-gray-600 dark:text-gray-300">
+                          {person.bio.trim()}
+                        </p>
+                      )}
+                      <a
+                        href={`/pages/person/${person.id}`}
+                        className="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        Mehr erfahren →
+                      </a>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
