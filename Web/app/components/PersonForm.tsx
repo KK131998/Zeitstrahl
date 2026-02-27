@@ -222,9 +222,7 @@ export default function PersonForm({
         JSON.stringify(achievements.map(({ id, ...rest }) => rest)),
       );
 
-      if (selectedEventIds.length > 0) {
-        fd.append("event_ids", JSON.stringify(selectedEventIds));
-      }
+      fd.append("event_ids", JSON.stringify(selectedEventIds));
 
       const isEdit = Boolean(personId);
       const url = isEdit ? `/api/persons/${personId}` : "/api/persons";

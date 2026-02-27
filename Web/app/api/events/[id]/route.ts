@@ -1,6 +1,9 @@
 // app/api/events/[id]/route.ts
 import { NextResponse } from "next/server";
-import { updateEventWithSubevents } from "@/lib/data";
+import {
+  updateEventWithSubevents,
+  updateEventPersonLinks,
+} from "@/lib/data";
 
 type IncomingSubevent = {
   title: string;
@@ -83,6 +86,18 @@ export async function PATCH(
       eventData,
       subevents,
     );
+
+    const rawPersonIds = formData.get("person_ids");
+    let personIds: string[] = [];
+    if (typeof rawPersonIds === "string" && rawPersonIds.trim()) {
+      try {
+        const parsed = JSON.parse(rawPersonIds);
+        if (Array.isArray(parsed)) personIds = parsed;
+      } catch {
+        /* ignore */
+      }
+    }
+    await updateEventPersonLinks(eventId, personIds);
 
     return NextResponse.json(result);
   } catch (err: any) {

@@ -190,9 +190,7 @@ export default function EventForm({
         JSON.stringify(subevents.map(({ id, ...rest }) => rest)),
       );
 
-      if (selectedPersonIds.length > 0) {
-        fd.append("person_ids", JSON.stringify(selectedPersonIds));
-      }
+      fd.append("person_ids", JSON.stringify(selectedPersonIds));
 
       const isEdit = Boolean(eventId);
       const url = isEdit ? `/api/events/${eventId}` : "/api/events";

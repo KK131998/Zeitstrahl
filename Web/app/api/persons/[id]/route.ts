@@ -1,6 +1,9 @@
 // app/api/persons/[id]/route.ts
 import { NextResponse } from "next/server";
-import { updatePersonWithAchievements } from "@/lib/data";
+import {
+  updatePersonWithAchievements,
+  updatePersonEventLinks,
+} from "@/lib/data";
 
 type IncomingAchievement = {
   title: string;
@@ -73,6 +76,18 @@ export async function PATCH(
     }));
 
     const result = await updatePersonWithAchievements(personId, personData, achievements);
+
+    const rawEventIds = formData.get("event_ids");
+    let eventIds: string[] = [];
+    if (typeof rawEventIds === "string" && rawEventIds.trim()) {
+      try {
+        const parsed = JSON.parse(rawEventIds);
+        if (Array.isArray(parsed)) eventIds = parsed;
+      } catch {
+        /* ignore */
+      }
+    }
+    await updatePersonEventLinks(personId, eventIds);
 
     return NextResponse.json(result);
   } catch (err: any) {

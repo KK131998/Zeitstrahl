@@ -312,6 +312,80 @@ export async function updateEventWithSubevents(
   };
 }
 
+export async function updateEventPersonLinks(
+  eventId: string,
+  personIds: string[],
+): Promise<void> {
+  const all = await pb.collection("event_persons").getFullList();
+  const personIdsSet = new Set(personIds);
+
+  for (const r of all) {
+    const eids = Array.isArray(r.event_ids) ? r.event_ids : r.event_ids ? [r.event_ids] : [];
+    const pids = Array.isArray(r.person_ids) ? r.person_ids : r.person_ids ? [r.person_ids] : [];
+    if (!eids.includes(eventId)) continue;
+
+    if (eids.length === 1 && eids[0] === eventId) {
+      await pb.collection("event_persons").delete(r.id);
+    } else if (pids.length === 1) {
+      const pid = pids[0];
+      const stillLinked = personIdsSet.has(pid);
+      if (stillLinked) continue;
+      const newEids = eids.filter((id) => id !== eventId);
+      if (newEids.length === 0) {
+        await pb.collection("event_persons").delete(r.id);
+      } else {
+        await pb.collection("event_persons").update(r.id, {
+          event_ids: newEids,
+        });
+      }
+    }
+  }
+
+  if (personIds.length > 0) {
+    await pb.collection("event_persons").create({
+      event_ids: [eventId],
+      person_ids: personIds,
+    });
+  }
+}
+
+export async function updatePersonEventLinks(
+  personId: string,
+  eventIds: string[],
+): Promise<void> {
+  const all = await pb.collection("event_persons").getFullList();
+  const eventIdsSet = new Set(eventIds);
+
+  for (const r of all) {
+    const eids = Array.isArray(r.event_ids) ? r.event_ids : r.event_ids ? [r.event_ids] : [];
+    const pids = Array.isArray(r.person_ids) ? r.person_ids : r.person_ids ? [r.person_ids] : [];
+    if (!pids.includes(personId)) continue;
+
+    if (pids.length === 1 && pids[0] === personId) {
+      await pb.collection("event_persons").delete(r.id);
+    } else if (eids.length === 1) {
+      const eid = eids[0];
+      const stillLinked = eventIdsSet.has(eid);
+      if (stillLinked) continue;
+      const newPids = pids.filter((id) => id !== personId);
+      if (newPids.length === 0) {
+        await pb.collection("event_persons").delete(r.id);
+      } else {
+        await pb.collection("event_persons").update(r.id, {
+          person_ids: newPids,
+        });
+      }
+    }
+  }
+
+  if (eventIds.length > 0) {
+    await pb.collection("event_persons").create({
+      event_ids: eventIds,
+      person_ids: [personId],
+    });
+  }
+}
+
 export async function getAllEventsWithSubevents() {
   const events = await getEvents();
   const result = [];
