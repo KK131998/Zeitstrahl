@@ -23,6 +23,8 @@ type Question = {
   due_at?: string | null;
   event_id?: string | null;
   event_title?: string | null; // aus expand.event_id.title
+  person_id?: string | null;
+  person_name?: string | null;
 };
 
 type CardStatus = "new" | "one" | "two" | "three" | "four" | "five" | "six";
@@ -53,7 +55,7 @@ function addDaysAtMidnight(date: Date, days: number): Date {
     0,
     0,
     0,
-    0
+    0,
   );
 }
 
@@ -95,7 +97,7 @@ async function deleteCard(id: string) {
 
 async function patchCard(
   id: string,
-  data: Partial<Pick<Question, "status" | "due_at" | "question" | "answer">>
+  data: Partial<Pick<Question, "status" | "due_at" | "question" | "answer">>,
 ) {
   const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records/${id}`;
   const res = await fetch(url, {
@@ -125,6 +127,9 @@ export default function Index() {
   // später dynamisch (z.B. aus Fragenliste)
   const remainingCards = questions.length;
   const status = (current?.status ?? "new") as CardStatus;
+
+  const hasEventLink = !!(current?.event_title || current?.event_id);
+  const hasPersonLink = !!(current?.person_name || current?.person_id);
 
   const flipCard = () => {
     Animated.timing(rotation, {
@@ -168,7 +173,9 @@ export default function Index() {
     try {
       setLoading(true);
       setError(null);
-      const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records?perPage=200&expand=event_id`;
+
+      // mehr Karten laden, um genug Spielraum zu haben
+      const url = `${POCKETBASE_URL}/api/collections/${COLLECTION}/records?perPage=1000&expand=event_id,person_id`;
       const res = await fetch(url);
       if (!res.ok) {
         throw new Error(`PocketBase Fehler (${res.status}) – prüfe URL/Rules`);
@@ -178,7 +185,13 @@ export default function Index() {
       const mapped: Question[] = items.map((it: Record<string, unknown>) => {
         const expand = it.expand as Record<string, unknown> | undefined;
         const eventRecord = expand?.event_id as { title?: string } | undefined;
-        const eventTitle = eventRecord?.title ? String(eventRecord.title) : null;
+        const eventTitle = eventRecord?.title
+          ? String(eventRecord.title)
+          : null;
+        const personRecord = expand?.person_id as { name?: string } | undefined;
+        const personName = personRecord?.name
+          ? String(personRecord.name)
+          : null;
         return {
           id: String(it.id),
           question: String(it.question ?? ""),
@@ -187,20 +200,28 @@ export default function Index() {
           due_at: (it.due_at as string | null) ?? null,
           event_id: (it.event_id as string | null) ?? null,
           event_title: eventTitle,
+          person_id: (it.person_id as string | null) ?? null,
+          person_name: personName,
         };
       });
       const today = toDateOnly(now);
+
       const due = mapped.filter((q) => {
-        if (!q.due_at) return true;
+        // alle Karten, deren due_at-Datum heute oder davor liegt
+        if (!q.due_at) return false;
         const dueDate = new Date(q.due_at);
-        if (Number.isNaN(dueDate.getTime())) return true;
-        return toDateOnly(dueDate) <= today; // nur Datum vergleichen, Uhrzeit irrelevant
+        if (Number.isNaN(dueDate.getTime())) return false;
+        const dueDay = toDateOnly(dueDate);
+        return dueDay <= today;
       });
+
       setQuestions(due);
       setCurrent(randomFrom(due));
       resetFlip();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler beim Laden.");
+      setError(
+        e instanceof Error ? e.message : "Unbekannter Fehler beim Laden.",
+      );
     } finally {
       setLoading(false);
     }
@@ -213,6 +234,29 @@ export default function Index() {
   async function handleDelete() {
     if (!current) return;
 
+    const doDelete = async () => {
+      try {
+        setBusy("delete");
+        await deleteCard(current.id);
+        const remaining = questions.filter((q) => q.id !== current.id);
+        setQuestions(remaining);
+        const next = randomFrom(remaining);
+        setCurrent(next);
+        resetFlip();
+        showToast("🗑️ Gelöscht");
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Fehler beim Löschen.");
+      } finally {
+        setBusy(null);
+      }
+    };
+
+    if (Platform.OS === "web") {
+      // Auf Web ist Alert mit Buttons oft eingeschränkt – direkt löschen
+      void doDelete();
+      return;
+    }
+
     Alert.alert(
       "Wirklich löschen?",
       "Diese Karte wird dauerhaft gelöscht.",
@@ -221,25 +265,12 @@ export default function Index() {
         {
           text: "Löschen",
           style: "destructive",
-          onPress: async () => {
-            try {
-              setBusy("delete");
-              await deleteCard(current.id);
-              const remaining = questions.filter((q) => q.id !== current.id);
-              setQuestions(remaining);
-              const next = randomFrom(remaining);
-              setCurrent(next);
-              resetFlip();
-              showToast("🗑️ Gelöscht");
-            } catch (e: unknown) {
-              setError(e instanceof Error ? e.message : "Fehler beim Löschen.");
-            } finally {
-              setBusy(null);
-            }
+          onPress: () => {
+            void doDelete();
           },
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   }
 
@@ -296,7 +327,7 @@ export default function Index() {
       const updated = { ...current, question: editQ, answer: editA };
       setCurrent(updated);
       setQuestions((prev) =>
-        prev.map((q) => (q.id === current.id ? updated : q))
+        prev.map((q) => (q.id === current.id ? updated : q)),
       );
 
       setEditOpen(false);
@@ -326,7 +357,10 @@ export default function Index() {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.errorText}>{error}</Text>
-        <Pressable style={[styles.button, styles.retry]} onPress={loadQuestions}>
+        <Pressable
+          style={[styles.button, styles.retry]}
+          onPress={loadQuestions}
+        >
           <Text style={styles.buttonText}>Erneut versuchen</Text>
         </Pressable>
       </View>
@@ -337,8 +371,13 @@ export default function Index() {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.header}>🎉 Keine Karten mehr offen!</Text>
-        <Text style={styles.footer}>Alle fälligen Karten wurden bearbeitet.</Text>
-        <Pressable style={[styles.button, styles.retry]} onPress={loadQuestions}>
+        <Text style={styles.footer}>
+          Alle fälligen Karten wurden bearbeitet.
+        </Text>
+        <Pressable
+          style={[styles.button, styles.retry]}
+          onPress={loadQuestions}
+        >
           <Text style={styles.buttonText}>Aktualisieren</Text>
         </Pressable>
       </View>
@@ -354,9 +393,11 @@ export default function Index() {
         <View style={styles.cardContainer}>
           {/* Vorderseite */}
           <Animated.View style={[styles.card, styles.front, frontStyle]}>
-            {(current?.event_title || current?.event_id) && (
+            {(hasEventLink || hasPersonLink) && (
               <Text style={styles.eventId}>
-                Event: {current.event_title || current.event_id}
+                {hasEventLink
+                  ? `Event: ${current?.event_title || current?.event_id}`
+                  : `Person: ${current?.person_name || current?.person_id}`}
               </Text>
             )}
             <Text style={styles.question}>{current?.question || "—"}</Text>
@@ -364,9 +405,11 @@ export default function Index() {
 
           {/* Rückseite */}
           <Animated.View style={[styles.card, styles.back, backStyle]}>
-            {(current?.event_title || current?.event_id) && (
+            {(hasEventLink || hasPersonLink) && (
               <Text style={styles.eventId}>
-                Event: {current.event_title || current.event_id}
+                {hasEventLink
+                  ? `Event: ${current?.event_title || current?.event_id}`
+                  : `Person: ${current?.person_name || current?.person_id}`}
               </Text>
             )}
             <Text style={styles.answer}>{current?.answer || "—"}</Text>
@@ -409,8 +452,8 @@ export default function Index() {
             {busy === "delete"
               ? "Lösche…"
               : flipped
-              ? "✏️ Bearbeiten"
-              : "🗑️ Löschen"}
+                ? "✏️ Bearbeiten"
+                : "🗑️ Löschen"}
           </Text>
         </Pressable>
       </View>
@@ -432,52 +475,52 @@ export default function Index() {
             contentContainerStyle={styles.modalScrollContent}
             keyboardShouldPersistTaps="handled"
           >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Bearbeiten</Text>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Bearbeiten</Text>
 
-            <Text style={styles.modalLabel}>Frage</Text>
-            <TextInput
-              value={editQ}
-              onChangeText={setEditQ}
-              style={styles.input}
-              multiline
-            />
+              <Text style={styles.modalLabel}>Frage</Text>
+              <TextInput
+                value={editQ}
+                onChangeText={setEditQ}
+                style={styles.input}
+                multiline
+              />
 
-            <Text style={styles.modalLabel}>Antwort</Text>
-            <TextInput
-              value={editA}
-              onChangeText={setEditA}
-              style={[styles.input, { minHeight: 80 }]}
-              multiline
-            />
+              <Text style={styles.modalLabel}>Antwort</Text>
+              <TextInput
+                value={editA}
+                onChangeText={setEditA}
+                style={[styles.input, { minHeight: 80 }]}
+                multiline
+              />
 
-            <View style={styles.modalActions}>
-              <Pressable
-                style={[styles.button, styles.buttonGhost, styles.buttonWide]}
-                disabled={busy === "save"}
-                onPress={() => setEditOpen(false)}
-              >
-                <Text style={styles.buttonText}>Abbrechen</Text>
-              </Pressable>
+              <View style={styles.modalActions}>
+                <Pressable
+                  style={[styles.button, styles.buttonGhost, styles.buttonWide]}
+                  disabled={busy === "save"}
+                  onPress={() => setEditOpen(false)}
+                >
+                  <Text style={styles.buttonText}>Abbrechen</Text>
+                </Pressable>
 
-              <Pressable
-                style={[
-                  styles.button,
-                  styles.correct,
-                  styles.buttonWide,
-                  busy === "save" && styles.buttonDisabled,
-                ]}
-                onPress={saveEdit}
-                disabled={busy === "save"}
-              >
-                {busy === "save" ? (
-                  <ActivityIndicator />
-                ) : (
-                  <Text style={styles.buttonText}>OK</Text>
-                )}
-              </Pressable>
+                <Pressable
+                  style={[
+                    styles.button,
+                    styles.correct,
+                    styles.buttonWide,
+                    busy === "save" && styles.buttonDisabled,
+                  ]}
+                  onPress={saveEdit}
+                  disabled={busy === "save"}
+                >
+                  {busy === "save" ? (
+                    <ActivityIndicator />
+                  ) : (
+                    <Text style={styles.buttonText}>OK</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
-          </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
@@ -567,9 +610,11 @@ const styles = StyleSheet.create({
   },
 
   answer: {
-    fontSize: 26,
-    fontWeight: "800",
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: "600",
     color: "#111",
+    textAlign: "left",
   },
 
   actions: {
