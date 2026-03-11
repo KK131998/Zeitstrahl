@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     // Pflichtfelder
     const name = String(incoming.get("name") ?? "").trim();
     const bornRaw = String(incoming.get("born") ?? "").trim();
+    const categoryRaw = String(incoming.get("category") ?? "").trim();
 
     if (!name) return Response.json({ error: "name fehlt." }, { status: 400 });
     if (!bornRaw)
@@ -96,6 +97,13 @@ export async function POST(req: Request) {
 
     // Relation setzen
     if (eraId) incoming.set("era_id", eraId);
+
+    // optionale Kategorie direkt an PocketBase durchreichen
+    if (categoryRaw) {
+      incoming.set("category", categoryRaw);
+    } else {
+      incoming.delete("category");
+    }
 
     // born als Zahl sicher setzen (PB bekommt FormData als Strings)
     incoming.set("born", String(born));

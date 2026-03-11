@@ -25,6 +25,7 @@ export async function PATCH(
     const bornRaw = formData.get("born");
     const diedRaw = formData.get("died");
     const bild = formData.get("bild");
+    const categoryRaw = formData.get("category");
 
     const personData: any = {};
     if (typeof name === "string") personData.name = name.trim();
@@ -50,6 +51,12 @@ export async function PATCH(
     }
 
     if (bild instanceof File) personData.bild = bild;
+
+    if (typeof categoryRaw === "string") {
+      const trimmed = categoryRaw.trim();
+      if (trimmed) personData.category = trimmed;
+      else personData.category = null;
+    }
 
     // Achievements JSON auslesen (FormKey bleibt: person_achievements)
     const rawAchievements = formData.get("person_achievements");

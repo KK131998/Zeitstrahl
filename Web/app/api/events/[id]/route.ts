@@ -26,6 +26,7 @@ export async function PATCH(
     const startRaw = formData.get("start_year");
     const endRaw = formData.get("end_year");
     const bild = formData.get("bild");
+    const categoryRaw = formData.get("category");
 
     const eventData: any = {};
     if (typeof title === "string") eventData.title = title.trim();
@@ -55,6 +56,12 @@ export async function PATCH(
     }
 
     if (bild instanceof File) eventData.bild = bild;
+
+    if (typeof categoryRaw === "string") {
+      const trimmed = categoryRaw.trim();
+      if (trimmed) eventData.category = trimmed;
+      else eventData.category = null;
+    }
 
     // Subevents JSON auslesen
     const rawSubevents = formData.get("subevents");

@@ -22,6 +22,7 @@ export type Event = {
   start_year?: number;
   end_year?: number;
   bild?: string;
+  category?: string;
 };
 
 export type Person = {
@@ -34,6 +35,7 @@ export type Person = {
   died?: number;
   timeline_year?: number;
   bild?: string;
+  category?: string;
 };
 
 export type Subevent = {
@@ -77,6 +79,7 @@ function mapEvent(record: any): Event {
     start_year: record.start_year,
     end_year: record.end_year,
     bild: record.bild,
+    category: record.category,
   };
 }
 
@@ -91,6 +94,7 @@ function mapPerson(record: any): Person {
     died: record.died,
     timeline_year: record.timeline_year,
     bild: record.bild,
+    category: record.category,
   };
 }
 

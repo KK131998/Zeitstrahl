@@ -20,6 +20,7 @@ export type EventInitialValues = Partial<{
   summary: string;
   personIds: string[];
   subevents: SubeventInput[];
+  category: string;
 }>;
 
 export default function EventForm({
@@ -38,6 +39,7 @@ export default function EventForm({
     initialValues?.end_year ?? "",
   );
   const [summary, setSummary] = useState(initialValues?.summary ?? "");
+  const [category, setCategory] = useState(initialValues?.category ?? "");
   const [bild, setBild] = useState<File | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -114,6 +116,7 @@ export default function EventForm({
     if (initialValues.end_year !== undefined)
       setEndYear(initialValues.end_year);
     if (initialValues.summary !== undefined) setSummary(initialValues.summary);
+    if (initialValues.category !== undefined) setCategory(initialValues.category);
 
     if (initialValues.subevents !== undefined) {
       setSubevents(
@@ -181,6 +184,10 @@ export default function EventForm({
       fd.append("start_year", String(startYear));
       if (endYear !== "") fd.append("end_year", String(endYear));
       fd.append("summary", summary);
+
+      if (category) {
+        fd.append("category", category);
+      }
 
       if (bild) fd.append("bild", bild);
 
@@ -334,6 +341,31 @@ export default function EventForm({
                 className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="Deine Beschreibung hier"
               />
+            </div>
+
+            {/* Category */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="category"
+                className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Kategorie:
+              </label>
+              <select
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">— keine Kategorie —</option>
+                <option value="history">History</option>
+                <option value="art">Art</option>
+                <option value="economy">Economy</option>
+                <option value="literature">Literature</option>
+                <option value="technology">Technology</option>
+                <option value="music">Music</option>
+                <option value="philosophy">Philosophy</option>
+              </select>
             </div>
 
             {/* File upload */}

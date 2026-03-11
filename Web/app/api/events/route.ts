@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     const summary = String(incoming.get("summary") ?? "").trim();
     const startRaw = String(incoming.get("start_year") ?? "").trim();
     const endRaw = String(incoming.get("end_year") ?? "").trim();
+    const categoryRaw = String(incoming.get("category") ?? "").trim();
 
     if (endRaw === "" || endRaw === "0") {
       incoming.delete("end_year");
@@ -66,6 +67,13 @@ export async function POST(req: Request) {
         { error: "end_year ist keine Zahl." },
         { status: 400 },
       );
+    }
+
+    // optionale Kategorie direkt so durchreichen, wenn gesetzt
+    if (categoryRaw) {
+      incoming.set("category", categoryRaw);
+    } else {
+      incoming.delete("category");
     }
 
     // 3) Subevents separat lesen (FormData enthält es als string)

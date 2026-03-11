@@ -32,6 +32,7 @@ export default async function Page({
           timeline_year: toNumberOrUndefined(person.timeline_year),
           bio: person.bio ?? "",
           eraId: person.era_id ?? "",
+          category: person.category ?? "",
           eventIds: events.map((e) => e.id),
           achievements: achievements.map((a) => ({
             title: a.title ?? "",

@@ -22,6 +22,7 @@ export type PersonInitialValues = Partial<{
   bio: string;
   eventIds: string[];
   achievements: AchievementInput[];
+  category: string;
 }>;
 
 export default function PersonForm({
@@ -37,6 +38,7 @@ export default function PersonForm({
   const [died, setDied] = useState<number | "">(initialValues?.died ?? "");
   const [timeline_year, setTimeline_year] = useState<number | "">(initialValues?.timeline_year ?? "");
   const [bio, setBio] = useState(initialValues?.bio ?? "");
+  const [category, setCategory] = useState(initialValues?.category ?? "");
   const [bild, setBild] = useState<File | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -77,6 +79,9 @@ export default function PersonForm({
     if (initialValues.eraId !== undefined) setEraId(initialValues.eraId);
     if (initialValues.eventIds !== undefined)
       setSelectedEventIds(initialValues.eventIds);
+
+    if (initialValues.category !== undefined)
+      setCategory(initialValues.category);
 
     if (initialValues.achievements !== undefined) {
       setAchievements(
@@ -214,6 +219,7 @@ export default function PersonForm({
       fd.append("bio", bio);
 
       if (bild) fd.append("bild", bild);
+      if (category) fd.append("category", category);
       if (eraId) fd.append("era", eraId);
 
       // Achievements als JSON (ohne UI-id) — Feldname bleibt wie bei dir: person_achievements
@@ -422,6 +428,31 @@ export default function PersonForm({
                 className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="Die Biographie der Persönlichkeit..."
               />
+            </div>
+
+            {/* Kategorie */}
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="category"
+                className="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
+              >
+                Kategorie:
+              </label>
+              <select
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">— keine Kategorie —</option>
+                <option value="history">History</option>
+                <option value="art">Art</option>
+                <option value="economy">Economy</option>
+                <option value="literature">Literature</option>
+                <option value="technology">Technology</option>
+                <option value="music">Music</option>
+                <option value="philosophy">Philosophy</option>
+              </select>
             </div>
 
             {/* File upload */}

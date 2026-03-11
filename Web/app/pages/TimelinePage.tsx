@@ -23,6 +23,95 @@ type TimelinePageProps = {
   allPersons: Person[];
 };
 
+type CategoryKey =
+  | "history"
+  | "art"
+  | "economy"
+  | "literature"
+  | "technology"
+  | "music"
+  | "philosophy"
+  | "default";
+
+const CATEGORY_META: Record<
+  CategoryKey,
+  {
+    label: string;
+    cardClass: string;
+    badgeClass: string;
+    dotClass: string;
+  }
+> = {
+  history: {
+    label: "History",
+    cardClass:
+      "border-amber-500/70 bg-gradient-to-br from-amber-900/70 via-gray-900/60 to-amber-800/40",
+    badgeClass:
+      "bg-amber-700/80 text-amber-50 border border-amber-400/70 shadow-sm",
+    dotClass: "bg-amber-400",
+  },
+  art: {
+    label: "Art",
+    cardClass:
+      "border-pink-500/70 bg-gradient-to-br from-pink-900/70 via-gray-900/60 to-pink-800/40",
+    badgeClass:
+      "bg-pink-700/80 text-pink-50 border border-pink-400/70 shadow-sm",
+    dotClass: "bg-pink-400",
+  },
+  economy: {
+    label: "Economy",
+    cardClass:
+      "border-emerald-500/70 bg-gradient-to-br from-emerald-900/70 via-gray-900/60 to-emerald-800/40",
+    badgeClass:
+      "bg-emerald-700/80 text-emerald-50 border border-emerald-400/70 shadow-sm",
+    dotClass: "bg-emerald-400",
+  },
+  literature: {
+    label: "Literature",
+    cardClass:
+      "border-indigo-500/70 bg-gradient-to-br from-indigo-900/70 via-gray-900/60 to-indigo-800/40",
+    badgeClass:
+      "bg-indigo-700/80 text-indigo-50 border border-indigo-400/70 shadow-sm",
+    dotClass: "bg-indigo-400",
+  },
+  technology: {
+    label: "Technology",
+    cardClass:
+      "border-cyan-500/70 bg-gradient-to-br from-cyan-900/70 via-gray-900/60 to-cyan-800/40",
+    badgeClass:
+      "bg-cyan-700/80 text-cyan-50 border border-cyan-400/70 shadow-sm",
+    dotClass: "bg-cyan-400",
+  },
+  music: {
+    label: "Music",
+    cardClass:
+      "border-fuchsia-500/70 bg-gradient-to-br from-fuchsia-900/70 via-gray-900/60 to-fuchsia-800/40",
+    badgeClass:
+      "bg-fuchsia-700/80 text-fuchsia-50 border border-fuchsia-400/70 shadow-sm",
+    dotClass: "bg-fuchsia-400",
+  },
+  philosophy: {
+    label: "Philosophy",
+    cardClass:
+      "border-slate-500/70 bg-gradient-to-br from-slate-900/70 via-gray-900/60 to-slate-800/40",
+    badgeClass:
+      "bg-slate-700/80 text-slate-50 border border-slate-400/70 shadow-sm",
+    dotClass: "bg-slate-300",
+  },
+  default: {
+    label: "Unkategorisiert",
+    cardClass: "border-gray-700 bg-gray-900/60",
+    badgeClass:
+      "bg-gray-700/80 text-gray-100 border border-gray-500/70 shadow-sm",
+    dotClass: "bg-blue-500",
+  },
+};
+
+function getCategoryMeta(raw?: string | null | undefined) {
+  const key = (raw ?? "").toLowerCase() as CategoryKey;
+  return CATEGORY_META[key] ?? CATEGORY_META.default;
+}
+
 function formatYear(year?: string | number) {
   if (
     year === undefined ||
@@ -144,6 +233,10 @@ export default function TimelinePage({
                               <div className="space-y-8">
                                 {itemsForEra.map((item) => {
                                   const isPerson = item.type === "person";
+                                  const category = (item.data as any).category as
+                                    | string
+                                    | undefined;
+                                  const meta = getCategoryMeta(category);
 
                                   return (
                                     <div
@@ -161,9 +254,18 @@ export default function TimelinePage({
                                             href={`pages/person/${item.data.id}`}
                                             className="block cursor-pointer"
                                           >
-                                            <div className="inline-block rounded-lg border border-gray-700 bg-gray-900/60 p-3 text-left md:text-right">
-                                              <div className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
-                                                Person
+                                            <div
+                                              className={`inline-block rounded-lg border p-3 text-left shadow-sm transition md:text-right ${meta.cardClass}`}
+                                            >
+                                              <div className="mb-1 flex items-center justify-between gap-2 md:justify-end md:gap-3">
+                                                <div className="text-xs font-semibold tracking-wide text-gray-200 uppercase">
+                                                  Person
+                                                </div>
+                                                <span
+                                                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${meta.badgeClass}`}
+                                                >
+                                                  {meta.label}
+                                                </span>
                                               </div>
                                               <div className="text-xs text-gray-400">
                                                 {formatYear(item.data.born)}
@@ -186,7 +288,9 @@ export default function TimelinePage({
 
                                       {/* Mitte: Punkt auf dem Zeitstrahl */}
                                       <div className="flex h-full items-center justify-center">
-                                        <div className="h-3 w-3 rounded-full border-2 border-gray-900 bg-blue-500" />
+                                        <div
+                                          className={`h-3 w-3 rounded-full border-2 border-gray-900 ${meta.dotClass}`}
+                                        />
                                       </div>
 
                                       {/* Rechte Seite: Events */}
@@ -196,9 +300,18 @@ export default function TimelinePage({
                                             href={`pages//event/${item.data.id}`}
                                             className="block cursor-pointer"
                                           >
-                                            <div className="inline-block rounded-lg border border-gray-700 bg-gray-900/60 p-3 text-left">
-                                              <div className="text-xs font-semibold tracking-wide text-gray-400 uppercase">
-                                                Event
+                                            <div
+                                              className={`inline-block rounded-lg border p-3 text-left shadow-sm transition ${meta.cardClass}`}
+                                            >
+                                              <div className="mb-1 flex items-center justify-between gap-2">
+                                                <div className="text-xs font-semibold tracking-wide text-gray-200 uppercase">
+                                                  Event
+                                                </div>
+                                                <span
+                                                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${meta.badgeClass}`}
+                                                >
+                                                  {meta.label}
+                                                </span>
                                               </div>
                                               <div className="text-xs text-gray-400">
                                                 {(() => {

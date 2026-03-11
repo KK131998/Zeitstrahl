@@ -27,6 +27,7 @@ export default async function Page({
           start_year: toNumberOrUndefined(event.start_year),
           end_year: toNumberOrUndefined(event.end_year),
           summary: event.summary ?? "",
+          category: event.category ?? "",
           personIds: persons.map((p) => p.id),
           subevents: subevents.map((s) => ({
             title: s.title ?? "",
