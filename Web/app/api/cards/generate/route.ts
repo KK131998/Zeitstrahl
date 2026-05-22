@@ -72,13 +72,18 @@ Keine zusätzlichen Felder, kein Fließtext.
 
 WICHTIGE REGELN ZUR ANZAHL:
 - Erstelle GENAU ${totalCards} Karten.
-- Davon GENAU 3 Karten zur PERSON insgesamt (übergreifend, nicht auf einzelne Achievements beschränkt).
-- Für JEDES Achievement GENAU 2 Karten, die sich klar auf dieses Achievement beziehen.
+- Davon GENAU 3 Karten zur Person insgesamt (Leben, Rolle, Bedeutung — nicht an einzelne Punkte gebunden).
+- Für JEDEN unten genannten Punkt GENAU 2 Karten zu genau diesem Punkt.
 
-VARIATION (Achievements):
-- Die 2 Karten pro Achievement müssen unterschiedliche Blickwinkel haben
-  (z.B. Handlung/Entscheidung, Bedeutung/Wirkung, Herausforderung, Lernen/Folge).
-- Keine nahezu identischen Fragen innerhalb desselben Achievements.
+FORMULIERUNG (sehr wichtig):
+- In Fragen und Antworten NIEMALS die Wörter "Achievement", "Achievements" oder "Leistungspunkt" verwenden.
+- Frage natürlich nach dem Ereignis, der Tat, dem Werk oder dem Titel — z. B. "Was tat …?", "Wofür ist … bekannt?", "Was geschah …?"
+- Nicht formulieren wie "Welches Achievement …" oder "Zu welchem Achievement …".
+
+VARIATION (pro Punkt):
+- Die 2 Karten pro Punkt müssen unterschiedliche Blickwinkel haben
+  (z. B. Handlung, Bedeutung/Wirkung, Herausforderung, Folge).
+- Keine nahezu identischen Fragen zum selben Punkt.
 
 INHALTLICHE QUALITÄT:
 - Fragen kurz, konkret, verständlich.
@@ -93,7 +98,7 @@ Geburtsjahr: ${p.born ?? ""}
 Sterbejahr: ${p.died ?? ""}
 Biografie: ${p.bio ?? ""}
 
-ACHIEVEMENTS (in Reihenfolge, je 2 Karten):
+WICHTIGE PUNKTE (in Reihenfolge, je 2 Karten — Titel im Kontext, nicht als Fachwort in der Frage):
 ${achievements
   .map(
     (a, idx) =>

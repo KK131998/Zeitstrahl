@@ -61,7 +61,15 @@ export default function EventForm({
   );
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingCards, setIsGeneratingCards] = useState(false);
+  const [savedEventId, setSavedEventId] = useState<string | undefined>(eventId);
   const [error, setError] = useState<string | null>(null);
+
+  const effectiveEventId = eventId ?? savedEventId;
+
+  useEffect(() => {
+    if (eventId) setSavedEventId(eventId);
+  }, [eventId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +173,52 @@ export default function EventForm({
     );
   };
 
+  const requestCardGeneration = async (id: string) => {
+    if (!title.trim()) {
+      setError("Bitte gib einen Titel an.");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsGeneratingCards(true);
+
+    try {
+      const res = await fetch("/api/cards/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "event",
+          eventId: id,
+          event: {
+            title: title.trim(),
+            start_year: typeof startYear === "number" ? startYear : undefined,
+            end_year: typeof endYear === "number" ? endYear : undefined,
+            summary: summary?.trim?.() ?? "",
+            subevents: subevents.map(({ id: _id, ...rest }) => rest),
+          },
+        }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = (await res.json()) as { created?: number };
+      setSuccess(
+        data.created
+          ? `${data.created} Lernkarten wurden erstellt.`
+          : "Karten-Generierung abgeschlossen.",
+      );
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Lernkarten konnten nicht generiert werden.",
+      );
+    } finally {
+      setIsGeneratingCards(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -218,22 +272,11 @@ export default function EventForm({
 
       if (!createdEventId) {
         console.error("Keine Event-ID im Response:", data);
-      } else if (!isEdit) {
-        await fetch("/api/cards/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "event",
-            eventId: createdEventId,
-            event: {
-              title: title.trim(),
-              start_year: typeof startYear === "number" ? startYear : undefined,
-              end_year: typeof endYear === "number" ? endYear : undefined,
-              summary: summary?.trim?.() ?? "",
-              subevents: subevents.map(({ id, ...rest }) => rest),
-            },
-          }),
-        });
+      } else {
+        setSavedEventId(createdEventId);
+        if (!isEdit) {
+          await requestCardGeneration(createdEventId);
+        }
       }
 
       console.log(isEdit ? "Event aktualisiert:" : "Event gespeichert:", data);
@@ -592,17 +635,30 @@ export default function EventForm({
               <span className="font-medium">Erfolg!</span> {success}
             </Alert>
           )}
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="bg-primary-700 hover:bg-primary-800 mt-4 inline-flex items-center rounded-lg px-5 py-2.5 text-center text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 sm:mt-6"
-          >
-            {isSaving
-              ? "Speichern..."
-              : eventId
-                ? "Änderungen speichern"
-                : "Hinzufügen"}
-          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 sm:mt-6">
+            <button
+              type="submit"
+              disabled={isSaving || isGeneratingCards}
+              className="bg-primary-700 hover:bg-primary-800 inline-flex items-center rounded-lg px-5 py-2.5 text-center text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSaving
+                ? "Speichern..."
+                : eventId
+                  ? "Änderungen speichern"
+                  : "Hinzufügen"}
+            </button>
+
+            {effectiveEventId && (
+              <button
+                type="button"
+                disabled={isSaving || isGeneratingCards}
+                onClick={() => requestCardGeneration(effectiveEventId)}
+                className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-center text-sm font-medium text-gray-900 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+              >
+                {isGeneratingCards ? "Generiere…" : "Karten generieren"}
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </section>

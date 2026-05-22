@@ -54,7 +54,11 @@ export default function PersonForm({
   );
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingCards, setIsGeneratingCards] = useState(false);
+  const [savedPersonId, setSavedPersonId] = useState<string | undefined>(personId);
   const [error, setError] = useState<string | null>(null);
+
+  const effectivePersonId = personId ?? savedPersonId;
 
   const [eraId, setEraId] = useState<string>(initialValues?.eraId ?? "");
   const [eras, setEras] = useState<Era[]>([]);
@@ -95,6 +99,10 @@ export default function PersonForm({
       );
     }
   }, [initialValues]);
+
+  useEffect(() => {
+    if (personId) setSavedPersonId(personId);
+  }, [personId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,6 +198,53 @@ export default function PersonForm({
     );
   };
 
+  const requestCardGeneration = async (id: string) => {
+    if (!name.trim()) {
+      setError("Bitte gib einen Namen an.");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsGeneratingCards(true);
+
+    try {
+      const res = await fetch("/api/cards/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "person",
+          personId: id,
+          person: {
+            name: name.trim(),
+            born: born === "" ? undefined : born,
+            died: died === "" ? undefined : died,
+            timeline_year: timeline_year === "" ? undefined : timeline_year,
+            bio: bio.trim(),
+            achievements: achievements.map(({ id: _id, ...rest }) => rest),
+          },
+        }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = (await res.json()) as { created?: number };
+      setSuccess(
+        data.created
+          ? `${data.created} Lernkarten wurden erstellt.`
+          : "Karten-Generierung abgeschlossen.",
+      );
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Lernkarten konnten nicht generiert werden.",
+      );
+    } finally {
+      setIsGeneratingCards(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -242,25 +297,11 @@ export default function PersonForm({
         personId ? "Änderungen wurden gespeichert." : "Eintrag wurde erstellt.",
       );
 
-      const createdPersonId = personId ?? data.id; // je nach API
+      const createdPersonId = personId ?? data.id ?? data.personId;
+      if (createdPersonId) setSavedPersonId(createdPersonId);
 
       if (!isEdit && createdPersonId) {
-        await fetch("/api/cards/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "person",
-            personId: createdPersonId,
-            person: {
-              name: name.trim(),
-              born: born === "" ? undefined : born,
-              died: died === "" ? undefined : died,
-              timeline_year: timeline_year === "" ? undefined : timeline_year,
-              bio: bio.trim(),
-              achievements: achievements.map(({ id, ...rest }) => rest),
-            },
-          }),
-        });
+        await requestCardGeneration(createdPersonId);
       }
 
       console.log(
@@ -681,17 +722,30 @@ export default function PersonForm({
               <span className="font-medium">Erfolg!</span> {success}
             </Alert>
           )}
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="bg-primary-700 hover:bg-primary-800 mt-4 inline-flex items-center rounded-lg px-5 py-2.5 text-center text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 sm:mt-6"
-          >
-            {isSaving
-              ? "Speichern..."
-              : personId
-                ? "Änderungen speichern"
-                : "Hinzufügen"}
-          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 sm:mt-6">
+            <button
+              type="submit"
+              disabled={isSaving || isGeneratingCards}
+              className="bg-primary-700 hover:bg-primary-800 inline-flex items-center rounded-lg px-5 py-2.5 text-center text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSaving
+                ? "Speichern..."
+                : personId
+                  ? "Änderungen speichern"
+                  : "Hinzufügen"}
+            </button>
+
+            {effectivePersonId && (
+              <button
+                type="button"
+                disabled={isSaving || isGeneratingCards}
+                onClick={() => requestCardGeneration(effectivePersonId)}
+                className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-center text-sm font-medium text-gray-900 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+              >
+                {isGeneratingCards ? "Generiere…" : "Karten generieren"}
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </section>
