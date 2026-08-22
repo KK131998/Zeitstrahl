@@ -80,9 +80,14 @@ export async function POST(req: Request) {
       // 2️⃣ Keine Epoche angegeben → automatisch über born finden
       try {
         console.log("Keine Epoche angegeben, suche über born:", born);
+        // Bei Grenzjahren (start_year einer Epoche == end_year der vorigen)
+        // matchen mehrere Epochen zugleich -> die mit dem spätesten
+        // start_year gewinnt (spezifischere/neuere Epoche).
         const era = await pb
           .collection("eras")
-          .getFirstListItem(`start_year <= ${born} && end_year >= ${born}`);
+          .getFirstListItem(`start_year <= ${born} && end_year >= ${born}`, {
+            sort: "-start_year",
+          });
         eraId = era.id;
       } catch (e: any) {
         if (e?.status === 404) {

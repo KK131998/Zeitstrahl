@@ -84,10 +84,15 @@ export async function POST(req: Request) {
     // 4) passende Era finden (NUMBER Vergleich, ohne Quotes)
     let era: any;
     try {
+      // Bei Grenzjahren (start_year einer Epoche == end_year der vorigen)
+      // matchen mehrere Epochen zugleich -> die mit dem spätesten
+      // start_year gewinnt, damit das Jahr der neueren/spezifischeren
+      // Epoche zugeordnet wird.
       era = await pb
         .collection("eras")
         .getFirstListItem(
           `start_year <= ${startYear} && end_year >= ${startYear}`,
+          { sort: "-start_year" },
         );
     } catch (e: any) {
       // PocketBase wirft bei "nichts gefunden" 404
