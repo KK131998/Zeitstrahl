@@ -13,6 +13,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { Image } from "expo-image";
 import { useEffect, useCallback, useRef, useState } from "react";
 
 type Question = {
@@ -25,6 +26,7 @@ type Question = {
   event_title?: string | null; // aus expand.event_id.title
   person_id?: string | null;
   person_name?: string | null;
+  picture?: string | null;
 };
 
 type CardStatus = "new" | "one" | "two" | "three" | "four" | "five" | "six";
@@ -32,6 +34,12 @@ type CardStatus = "new" | "one" | "two" | "three" | "four" | "five" | "six";
 const POCKETBASE_URL = "https://zeitstrahl-backend.fly.dev"; // <-- HIER ändern
 const COLLECTION = "cards";
 const TOAST_DURATION_MS = 1400;
+
+function cardPictureUrl(card: Question | null): string | null {
+  const filename = card?.picture?.trim();
+  if (!card?.id || !filename) return null;
+  return `${POCKETBASE_URL}/api/files/${COLLECTION}/${card.id}/${filename}`;
+}
 
 function randomFrom<T>(list: T[]): T | null {
   if (!list.length) return null;
@@ -130,6 +138,10 @@ export default function Index() {
 
   const hasEventLink = !!(current?.event_title || current?.event_id);
   const hasPersonLink = !!(current?.person_name || current?.person_id);
+  const hasPicture = !!current?.picture?.trim();
+  const pictureUrl = cardPictureUrl(current);
+  const showPersonLabel = hasPersonLink && !hasPicture;
+  const showTopLabel = hasEventLink || showPersonLabel;
 
   const flipCard = () => {
     Animated.timing(rotation, {
@@ -202,6 +214,7 @@ export default function Index() {
           event_title: eventTitle,
           person_id: (it.person_id as string | null) ?? null,
           person_name: personName,
+          picture: (it.picture as string | null) ?? null,
         };
       });
       const today = toDateOnly(now);
@@ -392,20 +405,40 @@ export default function Index() {
       <Pressable onPress={flipCard}>
         <View style={styles.cardContainer}>
           {/* Vorderseite */}
-          <Animated.View style={[styles.card, styles.front, frontStyle]}>
-            {(hasEventLink || hasPersonLink) && (
+          <Animated.View
+            style={[
+              styles.card,
+              styles.front,
+              hasPicture && styles.cardWithPicture,
+              frontStyle,
+            ]}
+          >
+            {showTopLabel && (
               <Text style={styles.eventId}>
                 {hasEventLink
                   ? `Event: ${current?.event_title || current?.event_id}`
                   : `Person: ${current?.person_name || current?.person_id}`}
               </Text>
             )}
-            <Text style={styles.question}>{current?.question || "—"}</Text>
+            {hasPicture && pictureUrl ? (
+              <View style={styles.pictureContent}>
+                <Image
+                  source={{ uri: pictureUrl }}
+                  style={styles.picture}
+                  contentFit="contain"
+                />
+                <Text style={styles.questionWithPicture}>
+                  {current?.question || "—"}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.question}>{current?.question || "—"}</Text>
+            )}
           </Animated.View>
 
           {/* Rückseite */}
           <Animated.View style={[styles.card, styles.back, backStyle]}>
-            {(hasEventLink || hasPersonLink) && (
+            {showTopLabel && (
               <Text style={styles.eventId}>
                 {hasEventLink
                   ? `Event: ${current?.event_title || current?.event_id}`
@@ -599,6 +632,35 @@ const styles = StyleSheet.create({
 
   back: {
     backgroundColor: "#f3f3f3",
+  },
+
+  cardWithPicture: {
+    justifyContent: "flex-start",
+    paddingTop: 16,
+  },
+
+  pictureContent: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  picture: {
+    width: "100%",
+    flex: 1,
+    maxHeight: 260,
+    borderRadius: 12,
+  },
+
+  questionWithPicture: {
+    textAlign: "center",
+    fontSize: 20,
+    lineHeight: 28,
+    color: "#111",
+    fontWeight: "600",
+    paddingHorizontal: 8,
   },
 
   question: {

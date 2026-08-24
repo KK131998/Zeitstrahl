@@ -75,6 +75,13 @@ WICHTIGE REGELN ZUR ANZAHL:
 - Davon GENAU 3 Karten zur Person insgesamt (Leben, Rolle, Bedeutung — nicht an einzelne Punkte gebunden).
 - Für JEDEN unten genannten Punkt GENAU 2 Karten zu genau diesem Punkt.
 
+JAHRESZAHLEN-FOKUS (sehr wichtig):
+- Von den 3 allgemeinen Karten zur Person MUSS genau eine Karte explizit das Geburtsjahr abfragen (z. B. "In welchem Jahr wurde … geboren?").
+- Ist ein Sterbejahr angegeben (nicht leer), MUSS genau eine weitere der 3 allgemeinen Karten explizit das Sterbejahr abfragen (z. B. "In welchem Jahr starb …?").
+- Ist kein Sterbejahr angegeben, ersetze diese Karte durch eine weitere allgemeine Frage zu Leben, Rolle oder Bedeutung der Person.
+- Bei den Punkt-Karten: Ist zu einem Punkt ein Jahr angegeben, soll mindestens eine der 2 Karten zu diesem Punkt das Jahr abfragen oder in der Antwort nennen.
+- Der Fragenkatalog soll insgesamt einen klaren, aber nicht ausschließlichen Schwerpunkt auf Jahreszahlen haben: die übrigen Karten fragen weiterhin normale inhaltliche Fakten ab, nicht nur Daten.
+
 FORMULIERUNG (sehr wichtig):
 - In Fragen und Antworten NIEMALS die Wörter "Achievement", "Achievements" oder "Leistungspunkt" verwenden.
 - Frage natürlich nach dem Ereignis, der Tat, dem Werk oder dem Titel — z. B. "Was tat …?", "Wofür ist … bekannt?", "Was geschah …?"
@@ -132,6 +139,13 @@ WICHTIGE REGELN ZUR ANZAHL:
 - Erstelle GENAU ${totalCards} Karten.
 - Davon GENAU 3 Karten zum HAUPTEVENT.
 - Für JEDES Subevent GENAU 2 Karten nur zu diesem Subevent.
+
+JAHRESZAHLEN-FOKUS (sehr wichtig):
+- Von den 3 Karten zum HAUPTEVENT MUSS genau eine Karte explizit das Startjahr abfragen (z. B. "In welchem Jahr begann …?").
+- Ist ein Endjahr angegeben (nicht leer und ungleich dem Startjahr), MUSS genau eine weitere der 3 Karten explizit das Endjahr abfragen (z. B. "In welchem Jahr endete …?").
+- Ist kein (abweichendes) Endjahr angegeben, ersetze diese Karte durch eine weitere allgemeine Frage zum Hauptevent.
+- Bei den Subevent-Karten: Ist zu einem Subevent ein Jahr angegeben, soll mindestens eine der 2 Karten zu diesem Subevent das Jahr abfragen oder in der Antwort nennen.
+- Der Fragenkatalog soll insgesamt einen klaren, aber nicht ausschließlichen Schwerpunkt auf Jahreszahlen haben: die übrigen Karten fragen weiterhin normale inhaltliche Fakten ab, nicht nur Daten.
 
 INHALTLICHE QUALITÄT:
 - Fragen kurz, konkret, verständlich.

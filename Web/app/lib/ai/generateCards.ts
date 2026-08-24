@@ -45,7 +45,10 @@ export async function generateCards(context: string): Promise<CardDraft[]> {
               "Erstelle Lernkarten (Frage/Antwort) für ein Spaced-Repetition-System.\n" +
               "Regeln: kurze, eindeutige Faktenfragen; keine Trickfragen; keine Duplikate; " +
               "nur Informationen verwenden, die im CONTEXT stehen.\n" +
-              "Erstelle 3–5 Basisfragen. Wenn Achievements/Unterpunkte vorhanden sind, zusätzlich 2–3 dazu.\n\n" +
+              "Erstelle 3–5 Basisfragen. Wenn Achievements/Unterpunkte vorhanden sind, zusätzlich 2–3 dazu.\n" +
+              "Lege einen klaren Fokus auf Jahreszahlen: wichtige Datumsangaben aus dem CONTEXT " +
+              "(z. B. Geburts-/Sterbejahr bei Personen, Start-/Endjahr bei Events) sollen gezielt " +
+              "abgefragt werden – aber nicht ausschließlich, die übrigen Karten fragen normale Fakten ab.\n\n" +
               'Antworte AUSSCHLIESSLICH mit gültigem JSON im Schema {"cards":[{"question":"...","answer":"..."}]} – ohne erklärenden Text.' +
               "\n\n" +
               "CONTEXT:\n" +
