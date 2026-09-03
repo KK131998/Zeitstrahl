@@ -29,6 +29,17 @@ type CategoryKey =
   | "philosophy"
   | "default";
 
+const CATEGORY_ORDER: CategoryKey[] = [
+  "history",
+  "art",
+  "economy",
+  "literature",
+  "technology",
+  "music",
+  "philosophy",
+  "default",
+];
+
 const CATEGORY_META: Record<
   CategoryKey,
   {
@@ -36,6 +47,8 @@ const CATEGORY_META: Record<
     cardClass: string;
     badgeClass: string;
     dotClass: string;
+    chipClass: string;
+    chipActiveClass: string;
   }
 > = {
   history: {
@@ -45,6 +58,10 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-amber-700/80 text-amber-50 border border-amber-400/70 shadow-sm",
     dotClass: "bg-amber-400",
+    chipClass:
+      "border-amber-500/40 bg-amber-900/30 text-amber-200 hover:border-amber-400/70 hover:bg-amber-800/40",
+    chipActiveClass:
+      "border-amber-400 bg-amber-600 text-amber-50 shadow-md shadow-amber-900/40",
   },
   art: {
     label: "Art",
@@ -53,6 +70,10 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-pink-700/80 text-pink-50 border border-pink-400/70 shadow-sm",
     dotClass: "bg-pink-400",
+    chipClass:
+      "border-pink-500/40 bg-pink-900/30 text-pink-200 hover:border-pink-400/70 hover:bg-pink-800/40",
+    chipActiveClass:
+      "border-pink-400 bg-pink-600 text-pink-50 shadow-md shadow-pink-900/40",
   },
   economy: {
     label: "Economy",
@@ -61,6 +82,10 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-emerald-700/80 text-emerald-50 border border-emerald-400/70 shadow-sm",
     dotClass: "bg-emerald-400",
+    chipClass:
+      "border-emerald-500/40 bg-emerald-900/30 text-emerald-200 hover:border-emerald-400/70 hover:bg-emerald-800/40",
+    chipActiveClass:
+      "border-emerald-400 bg-emerald-600 text-emerald-50 shadow-md shadow-emerald-900/40",
   },
   literature: {
     label: "Literature",
@@ -69,6 +94,10 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-indigo-700/80 text-indigo-50 border border-indigo-400/70 shadow-sm",
     dotClass: "bg-indigo-400",
+    chipClass:
+      "border-indigo-500/40 bg-indigo-900/30 text-indigo-200 hover:border-indigo-400/70 hover:bg-indigo-800/40",
+    chipActiveClass:
+      "border-indigo-400 bg-indigo-600 text-indigo-50 shadow-md shadow-indigo-900/40",
   },
   technology: {
     label: "Technology",
@@ -77,6 +106,10 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-cyan-700/80 text-cyan-50 border border-cyan-400/70 shadow-sm",
     dotClass: "bg-cyan-400",
+    chipClass:
+      "border-cyan-500/40 bg-cyan-900/30 text-cyan-200 hover:border-cyan-400/70 hover:bg-cyan-800/40",
+    chipActiveClass:
+      "border-cyan-400 bg-cyan-600 text-cyan-50 shadow-md shadow-cyan-900/40",
   },
   music: {
     label: "Music",
@@ -85,6 +118,10 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-fuchsia-700/80 text-fuchsia-50 border border-fuchsia-400/70 shadow-sm",
     dotClass: "bg-fuchsia-400",
+    chipClass:
+      "border-fuchsia-500/40 bg-fuchsia-900/30 text-fuchsia-200 hover:border-fuchsia-400/70 hover:bg-fuchsia-800/40",
+    chipActiveClass:
+      "border-fuchsia-400 bg-fuchsia-600 text-fuchsia-50 shadow-md shadow-fuchsia-900/40",
   },
   philosophy: {
     label: "Philosophy",
@@ -93,6 +130,10 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-slate-700/80 text-slate-50 border border-slate-500/70 shadow-sm",
     dotClass: "bg-slate-300",
+    chipClass:
+      "border-slate-500/40 bg-slate-800/50 text-slate-200 hover:border-slate-400/70 hover:bg-slate-700/50",
+    chipActiveClass:
+      "border-slate-300 bg-slate-500 text-slate-50 shadow-md shadow-slate-900/40",
   },
   default: {
     label: "Unkategorisiert",
@@ -100,12 +141,20 @@ const CATEGORY_META: Record<
     badgeClass:
       "bg-gray-700/80 text-gray-100 border border-gray-500/70 shadow-sm",
     dotClass: "bg-blue-500",
+    chipClass:
+      "border-gray-600/50 bg-gray-800/60 text-gray-300 hover:border-gray-400/70 hover:bg-gray-700/60",
+    chipActiveClass:
+      "border-gray-300 bg-gray-500 text-white shadow-md shadow-gray-900/40",
   },
 };
 
-function getCategoryMeta(raw?: string | null | undefined) {
+function getCategoryKey(raw?: string | null | undefined): CategoryKey {
   const key = (raw ?? "").toLowerCase() as CategoryKey;
-  return CATEGORY_META[key] ?? CATEGORY_META.default;
+  return CATEGORY_META[key] ? key : "default";
+}
+
+function getCategoryMeta(raw?: string | null | undefined) {
+  return CATEGORY_META[getCategoryKey(raw)];
 }
 
 function formatYear(year?: string | number) {
@@ -168,21 +217,9 @@ export default function TimelinePage({
   allPersons,
 }: TimelinePageProps) {
   const [openEras, setOpenEras] = useState<Set<string>>(new Set());
-
-  const allOpen = eras.length > 0 && eras.every((e) => openEras.has(e.id));
-
-  function toggleAll() {
-    setOpenEras(allOpen ? new Set() : new Set(eras.map((e) => e.id)));
-  }
-
-  function toggleEra(id: string) {
-    setOpenEras((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
+  const [activeCategory, setActiveCategory] = useState<CategoryKey | "all">(
+    "all",
+  );
 
   const eraItems = useMemo(
     () =>
@@ -231,6 +268,67 @@ export default function TimelinePage({
     [eras, allEvents, allPersons],
   );
 
+  const availableCategories = useMemo(() => {
+    const used = new Set<CategoryKey>();
+    for (const { itemsForEra } of eraItems) {
+      for (const item of itemsForEra) {
+        used.add(getCategoryKey(item.data.category));
+      }
+    }
+    return CATEGORY_ORDER.filter((key) => used.has(key));
+  }, [eraItems]);
+
+  const visibleEraItems = useMemo(
+    () =>
+      eraItems.map(({ era, itemsForEra }) => ({
+        era,
+        itemsForEra:
+          activeCategory === "all"
+            ? itemsForEra
+            : itemsForEra.filter(
+                (item) => getCategoryKey(item.data.category) === activeCategory,
+              ),
+        totalItems: itemsForEra.length,
+      })),
+    [eraItems, activeCategory],
+  );
+
+  const erasWithItems = visibleEraItems.filter(
+    ({ itemsForEra }) => itemsForEra.length > 0,
+  );
+  const erasToShow =
+    activeCategory === "all" ? visibleEraItems : erasWithItems;
+
+  const allOpen =
+    erasToShow.length > 0 && erasToShow.every(({ era }) => openEras.has(era.id));
+
+  function toggleAll() {
+    setOpenEras(
+      allOpen ? new Set() : new Set(erasToShow.map(({ era }) => era.id)),
+    );
+  }
+
+  function toggleEra(id: string) {
+    setOpenEras((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectCategory(key: CategoryKey | "all") {
+    setActiveCategory(key);
+    if (key === "all") return;
+
+    const matchingIds = eraItems
+      .filter(({ itemsForEra }) =>
+        itemsForEra.some((item) => getCategoryKey(item.data.category) === key),
+      )
+      .map(({ era }) => era.id);
+    setOpenEras(new Set(matchingIds));
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 px-4 py-16">
       <div className="mx-auto w-full max-w-5xl">
@@ -249,24 +347,75 @@ export default function TimelinePage({
         </div>
 
         {/* TOOLBAR */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-900/70 px-5 py-3 backdrop-blur-sm">
-          <span className="text-sm text-gray-400">
-            <span className="font-semibold text-white">{eras.length}</span>{" "}
-            {eras.length === 1 ? "Epoche" : "Epochen"}
-          </span>
+        <div className="mb-8 space-y-4 rounded-2xl border border-gray-800 bg-gray-900/70 px-5 py-4 backdrop-blur-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-gray-400">
+              <span className="font-semibold text-white">
+                {erasToShow.length}
+              </span>{" "}
+              {erasToShow.length === 1 ? "Epoche" : "Epochen"}
+              {activeCategory !== "all" && (
+                <>
+                  {" "}
+                  mit{" "}
+                  <span className="font-semibold text-white">
+                    {CATEGORY_META[activeCategory].label}
+                  </span>
+                </>
+              )}
+            </span>
 
-          <button
-            type="button"
-            onClick={toggleAll}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:from-blue-500 hover:to-indigo-500 hover:shadow-lg active:scale-95"
-          >
-            <ChevronIcon open={allOpen} />
-            {allOpen ? "Alle zuklappen" : "Alle aufklappen"}
-          </button>
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:from-blue-500 hover:to-indigo-500 hover:shadow-lg active:scale-95"
+            >
+              <ChevronIcon open={allOpen} />
+              {allOpen ? "Alle zuklappen" : "Alle aufklappen"}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+              Kategorie
+            </span>
+            <button
+              type="button"
+              onClick={() => selectCategory("all")}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold tracking-wide uppercase transition ${
+                activeCategory === "all"
+                  ? "border-blue-400 bg-blue-600 text-white shadow-md shadow-blue-900/40"
+                  : "border-gray-600/60 bg-gray-800/70 text-gray-300 hover:border-blue-400/60 hover:bg-gray-700/70"
+              }`}
+            >
+              Alle
+            </button>
+            {availableCategories.map((key) => {
+              const meta = CATEGORY_META[key];
+              const isActive = activeCategory === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => selectCategory(key)}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold tracking-wide uppercase transition ${
+                    isActive ? meta.chipActiveClass : meta.chipClass
+                  }`}
+                >
+                  {meta.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        {erasToShow.length === 0 ? (
+          <p className="rounded-xl border border-gray-800 bg-gray-900/60 px-5 py-8 text-center text-sm text-gray-400">
+            Keine Epochen mit Einträgen in dieser Kategorie.
+          </p>
+        ) : (
         <Timeline>
-          {eraItems.map(({ era, itemsForEra }) => {
+          {erasToShow.map(({ era, itemsForEra, totalItems }) => {
             const isOpen = openEras.has(era.id);
 
             return (
@@ -298,6 +447,10 @@ export default function TimelinePage({
                           <span className="mt-1.5 text-xs text-gray-500">
                             {itemsForEra.length}{" "}
                             {itemsForEra.length === 1 ? "Eintrag" : "Einträge"}
+                            {activeCategory !== "all" &&
+                              itemsForEra.length !== totalItems && (
+                                <> von {totalItems}</>
+                              )}
                           </span>
                         </div>
 
@@ -315,15 +468,17 @@ export default function TimelinePage({
                           <div className="border-t border-gray-800 px-5 py-5">
                             {itemsForEra.length === 0 ? (
                               <p className="text-sm text-gray-500">
-                                Keine Personen oder Events für diese Epoche.
+                                {activeCategory === "all"
+                                  ? "Keine Personen oder Events für diese Epoche."
+                                  : `Keine Einträge in der Kategorie ${CATEGORY_META[activeCategory].label}.`}
                               </p>
                             ) : (
                               <div className="space-y-8">
                                 {itemsForEra.map((item) => {
                                   const isPerson = item.type === "person";
-                                  const category = (item.data as any)
-                                    .category as string | undefined;
-                                  const meta = getCategoryMeta(category);
+                                  const meta = getCategoryMeta(
+                                    item.data.category,
+                                  );
 
                                   return (
                                     <div
@@ -442,6 +597,7 @@ export default function TimelinePage({
             );
           })}
         </Timeline>
+        )}
       </div>
     </main>
   );
